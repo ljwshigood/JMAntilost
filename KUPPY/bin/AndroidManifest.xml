@@ -100,9 +100,7 @@
             android:name="com.cn.jmantiLost.activity.LocationSourceActivity"
             android:label="@string/app_name" >
         </activity>
-        <activity
-            android:name="com.cn.jmantiLost.activity.MainFollowActivity"
-            android:screenOrientation="portrait" >
+        <activity android:name="com.cn.jmantiLost.activity.WelcomeActivity" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -110,8 +108,10 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="com.cn.jmantiLost.activity.CallActivity"
-            android:launchMode="singleInstance" >
+            android:name="com.cn.jmantiLost.activity.MainActivity"
+            android:screenOrientation="portrait" >
+        </activity>
+        <activity android:name="com.cn.jmantiLost.activity.CallActivity" >
         </activity>
         <activity
             android:name="com.cn.jmantiLost.activity.OpenAppActivity"
@@ -160,6 +160,14 @@
             android:screenOrientation="portrait" >
         </activity>
         <activity android:name="com.cn.jmantiLost.activity.DeviceScanActivity" >
+
+            <!--
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            -->
         </activity>
         <activity android:name="com.cn.jmantiLost.activity.DeviceSetActivity" >
         </activity>

@@ -338,7 +338,7 @@
         </ImageView>
 
         <RelativeLayout
-            android:id="@+id/ll_sound"
+            android:id="@+id/ll_record"
             android:layout_width="match_parent"
             android:layout_height="70dp"
             android:background="@drawable/ic_linear_selector"

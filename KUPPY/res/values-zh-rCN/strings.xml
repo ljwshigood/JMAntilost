@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="front">前置</string>
-	<string name="Rear">后置</string>
+
+    <string name="about_me">关于我们</string>
+    <string name="front">前置</string>
+    <string name="Rear">后置</string>
     <string name="slide_to_answer_hint" msgid="4901042355463593903">"接听"</string>
     <string name="slide_to_decline_hint" msgid="4484576372463030324">"拒绝"</string>
     <string name="slide_to_answer" msgid="255903188611244476">"向右拖动以接听"</string>
@@ -56,7 +58,7 @@
     <string name="zhuyi">注意</string>
     <string name="distance_info">这个距离并不代表实际距离，因为他取决于蓝牙无线电强度</string>
     <string name="alarm">报警</string>
-    <string name="call">电话</string>
+    <string name="call">Call E2</string>
     <string name="camera_focus">抓拍对焦</string>
     <string name="camera_focus_info">开启后抓拍会更清晰,但是拍照会慢些</string>
     <string name="message">求助信息</string>
@@ -79,7 +81,7 @@
     <string name="device_setting">设置</string>
     <string name="device">设备</string>
     <string name="camera">拍照</string>
-    <string name="record">语音备忘录</string>
+    <string name="record">录音</string>
     <string name="antilost">防丢</string>
     <string name="location">定位</string>
     <string name="change_picture">更换图片</string>

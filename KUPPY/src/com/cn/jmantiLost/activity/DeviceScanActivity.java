@@ -45,15 +45,12 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -64,8 +61,12 @@ import com.cn.jmantiLost.bean.DisturbInfo;
 import com.cn.jmantiLost.bean.SoundInfo;
 import com.cn.jmantiLost.db.DatabaseManager;
 import com.cn.jmantiLost.impl.IDismissListener;
+import com.cn.jmantiLost.service.AlarmService;
+import com.cn.jmantiLost.service.BgMusicControlService;
 import com.cn.jmantiLost.service.BluetoothLeService;
 import com.cn.jmantiLost.util.AlarmManager;
+import com.cn.jmantiLost.util.Constant;
+import com.cn.jmantiLost.util.EncriptyUtils;
 import com.cn.jmantiLost.view.FollowProgressDialog;
 
 /**
@@ -74,7 +75,6 @@ import com.cn.jmantiLost.view.FollowProgressDialog;
 @SuppressLint("NewApi")
 public class DeviceScanActivity extends Activity implements OnClickListener ,IDismissListener{
 
-	private LeDeviceListAdapter mLeDeviceListAdapter;
 	private BluetoothAdapter mBluetoothAdapter;
 	private boolean mScanning;
 	private Handler mHandler;
@@ -82,8 +82,6 @@ public class DeviceScanActivity extends Activity implements OnClickListener ,IDi
 	private static final int REQUEST_ENABLE_BT = 1;
 	private static final long SCAN_PERIOD = 10000;
 	
-	private ListView mLvBlueDevice;
-
 	private Context mContext;
 
 	private BluetoothDevice mDevice;
@@ -94,12 +92,6 @@ public class DeviceScanActivity extends Activity implements OnClickListener ,IDi
 			final String action = intent.getAction();
 			if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
 				String address = intent.getStringExtra(BluetoothDevice.EXTRA_DEVICE);
-				
-				Log.e("liujw","#########################ACTION_GATT_SERVICES_DISCOVERED");
-				
-				if (mDialogProgress != null) {
-					mDialogProgress.dismiss();
-				}
 				
 				if (AppContext.mBluetoothLeService != null) {
 					displayGattServices(AppContext.mBluetoothLeService.getSupportedGattServices(),address);
@@ -118,11 +110,18 @@ public class DeviceScanActivity extends Activity implements OnClickListener ,IDi
 				for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
 					if (gattCharacteristic.getUuid().toString().startsWith("0000ffe1")) {
 						AppContext.mBluetoothLeService.setCharacteristicNotification(gattCharacteristic, true);
-						saveDatabaseAndStartActivity();
+					}else if(gattCharacteristic.getUuid().toString().startsWith("0000ffe2")){
+						if (AppContext.mBluetoothLeService != null) {
+							String orgData = EncriptyUtils.encripty(Constant.AUTH_ID+Constant.SESSION_KEY, Constant.Key) ;
+							
+							AppContext.mBluetoothLeService.sendMsg(address,EncriptyUtils.zhuanHuan(orgData));
+						}
 					}
 				}
 			}
 		}
+		
+		saveDatabaseAndStartActivity();
 	}
 
 	private ImageView mIvBack;
@@ -156,16 +155,16 @@ public class DeviceScanActivity extends Activity implements OnClickListener ,IDi
 		}
 
 		setContentView(R.layout.activity_device_scan);
-		mLvBlueDevice = (ListView) findViewById(R.id.lv_scan_device);
 		mContext = this;
-		
-		mLeDeviceListAdapter = new LeDeviceListAdapter();
-		mLvBlueDevice.setAdapter(mLeDeviceListAdapter);
-		mLvBlueDevice.setOnItemClickListener(mLeDeviceListAdapter);
 
 		mAlarmManager = AlarmManager.getInstance(mContext);
 		initView();
 
+		Intent intent = new Intent(mContext, BgMusicControlService.class);
+		startService(intent);
+		Intent intentAlarm = new Intent(mContext, AlarmService.class);
+		startService(intentAlarm);
+		
 		setTitle(mContext.getString(R.string.device_scanning));
 		
 		if(AppContext.mBluetoothLeService != null){
@@ -220,10 +219,6 @@ public class DeviceScanActivity extends Activity implements OnClickListener ,IDi
 	@Override
 	protected void onDestroy() {
 		scanLeDevice(false);
-		if (mDialogProgress != null) {
-			mDialogProgress.dismiss();
-			mDialogProgress = null;
-		}
 		super.onDestroy();
 	}
 
@@ -301,11 +296,12 @@ public class DeviceScanActivity extends Activity implements OnClickListener ,IDi
 			mBluetoothAdapter.stopLeScan(mLeScanCallback);
 			mScanning = false;
 		}
-		Intent intent = new Intent(mContext, DeviceDisplayActivity.class);
+		
+		Intent intent = new Intent(mContext, MainActivity.class);
 		intent.putExtra(DeviceDisplayActivity.EXTRAS_DEVICE_NAME,mDevice.getName());
 		intent.putExtra(DeviceDisplayActivity.EXTRAS_DEVICE_ADDRESS,mDevice.getAddress());
 		intent.putExtra("device", mDevice);
-		setResult(DeviceDisplayActivity.RESULT_ADRESS, intent);
+		startActivity(intent);
 		finish();
 	}
 
@@ -375,32 +371,9 @@ public class DeviceScanActivity extends Activity implements OnClickListener ,IDi
 		@Override
 		public void onItemClick(AdapterView<?> arg0, View view, int position,long arg3) {
 			
-			if(AppContext.mHashMapConnectGatt.size() > 0){
-				Toast.makeText(mContext, mContext.getString(R.string.already_one_device_conncect), 1).show();
-				return ;
-			}
-			
-			final BluetoothDevice device = mLeDeviceListAdapter.getDevice(position);
-			mDevice = device;
-			if (device == null)
-				return;
-			if (AppContext.mBluetoothLeService != null) {
-				AppContext.mBluetoothLeService.connect(device.getAddress());
-			}
-			showProgressBarDialog();
 		}
 	}
 
-	public FollowProgressDialog mDialogProgress = null;
-
-	private void showProgressBarDialog() {
-		String info = mContext.getString(R.string.device_connected_title);
-		mDialogProgress = new FollowProgressDialog(mContext, R.style.MyDialog,
-				info);
-		mDialogProgress.show();
-	}
-
-	// Device scan callback.
 	private BluetoothAdapter.LeScanCallback mLeScanCallback = new BluetoothAdapter.LeScanCallback() {
 
 		@Override
@@ -409,10 +382,7 @@ public class DeviceScanActivity extends Activity implements OnClickListener ,IDi
 			runOnUiThread(new Runnable() {
 				@Override
 				public void run() {
-					mLvBlueDevice.setVisibility(View.VISIBLE);
 					mLLInfo.setVisibility(View.GONE);
-					mLeDeviceListAdapter.addDevice(device);
-					mLeDeviceListAdapter.notifyDataSetChanged();	
 				}
 			});
 		}
@@ -460,9 +430,7 @@ public class DeviceScanActivity extends Activity implements OnClickListener ,IDi
 
 	@Override
 	public void dismiss() {
-		if (mDialogProgress != null) {
-			mDialogProgress.dismiss();
-		}
+		
 	}
 
 }

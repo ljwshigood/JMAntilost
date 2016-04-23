@@ -102,8 +102,7 @@ public class CameraActivity extends Activity implements OnClickListener {
 		final IntentFilter intentFilter = new IntentFilter();
 		intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
 		intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
-		intentFilter
-				.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
+		intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
 		intentFilter.addAction(BluetoothLeService.ACTION_NOTIFY_DATA_AVAILABLE);
 		intentFilter.addAction(BluetoothLeService.ACTION_GATT_RSSI);
 		return intentFilter;
@@ -121,13 +120,13 @@ public class CameraActivity extends Activity implements OnClickListener {
 
 	private void initView() {
 		mIvBack = (ImageView)findViewById(R.id.iv_back);
+		mIvBack.setVisibility(View.INVISIBLE);
 		mLvCamera = (ListView) findViewById(R.id.lv_gallery);
 		mLvCamera.setAdapter(mGalleryAdapter);
 		mLvCamera.setOnItemClickListener(mGalleryAdapter);
 		mIvCamera = (ImageView) findViewById(R.id.iv_camera);
 		mIvCamera.setVisibility(View.VISIBLE);
 		mIvCamera.setOnClickListener(this);
-		mIvBack.setOnClickListener(this);
 	}
 
 	@Override

@@ -85,11 +85,6 @@ public class AppAdapter extends BaseAdapter implements OnItemClickListener{
 		}else {
 			viewHolder = (ViewHolder) convertView.getTag();
 		}
-		if(appUnit.isSelect){
-			viewHolder.mLLSelectApp.setBackgroundResource(R.drawable.bg_item_select);
-		}else{
-			viewHolder.mLLSelectApp.setBackgroundDrawable(null);
-		}
 		
 		viewHolder.tvAppName.setText(appUnit.appName);
 		viewHolder.ivApp.setImageDrawable(appUnit.appIcon); 

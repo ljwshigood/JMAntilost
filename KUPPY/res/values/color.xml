@@ -4,8 +4,11 @@
     <color name="seek_bg">#969696</color>
     <color name="red">#FF0000</color>
     <color name="blue">#0000ff</color>
-    <color name="dark">#4B4B4B</color>
-    <color name="blue_light">#66FFFF</color>
+    <color name="dark">#555462</color>
+    <color name="blue_light">#00ffff</color>
     <color name="green">#00a13d</color>
-	<color name="grey">#cacccc</color>
+    <color name="grey">#cacccc</color>
+     <color name="dark_black">#2d2d37</color>
+    <color name="bg_home">#E5E5E5</color>
+
 </resources>

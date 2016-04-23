@@ -3,6 +3,12 @@ package com.cn.jmantiLost.util;
 
 public class Constant {
 	
+	public static final String Key = "C13A8572";
+	
+	public static final String AUTH_ID ="21FE" ;
+	
+	public static final String SESSION_KEY = "1122" ;
+	
 	public static final int DISCONNECT = 0;
 	
 	public static final int DISTANCE = 1;

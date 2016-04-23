@@ -3,6 +3,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/bg_home"
     android:orientation="vertical" >
 
     <LinearLayout
@@ -24,63 +25,10 @@
         android:orientation="vertical" >
 
         <LinearLayout
-            android:id="@+id/rl_device_info"
-            android:layout_width="match_parent"
-            android:layout_height="100dp"
-            android:layout_marginTop="10dp"
-            android:orientation="horizontal"
-            android:paddingLeft="20dp" >
-
-            <LinearLayout
-                android:id="@+id/ll_device"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="vertical" >
-
-                <ImageView
-                    android:id="@+id/iv_device"
-                    android:layout_width="72dp"
-                    android:layout_height="72dp"
-                    android:src="@drawable/ic_default_device" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:orientation="horizontal" >
-
-                    <TextView
-                        android:id="@+id/tv_change_device"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/change_picture"
-                        android:textColor="@color/dark" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <EditText
-                android:id="@+id/et_device_name"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical"
-                android:layout_marginLeft="60dp"
-                android:text="kuppy"
-                android:textColor="@color/dark"
-                android:textSize="20sp" />
-        </LinearLayout>
-
-        <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@drawable/ic_divider" >
-        </ImageView>
-
-        <LinearLayout
             android:id="@+id/ll_not_disturb"
             android:layout_width="match_parent"
-            android:layout_height="70dp"
-            android:background="@drawable/ic_linear_selector"
+            android:layout_height="50dp"
+            android:background="@drawable/bg_item_selector"
             android:gravity="center_vertical"
             android:orientation="horizontal" >
 
@@ -88,246 +36,29 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="55"
+                android:gravity="center_vertical"
                 android:orientation="horizontal" >
 
                 <ImageView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:paddingLeft="15dp"
-                    android:src="@drawable/ic_not_disturb" >
+                    android:src="@drawable/ic_disturb" >
                 </ImageView>
 
                 <LinearLayout
                     android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
                     android:gravity="center"
                     android:orientation="horizontal" >
 
                     <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginLeft="5dp"
-                        android:text="@string/not_disturb"
-                        android:textColor="@color/dark"
-                        android:textSize="18sp" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_weight="45"
-                android:gravity="right"
-                android:orientation="vertical" >
-
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginRight="15dp"
-                    android:src="@drawable/ic_arrow_right" >
-                </ImageView>
-            </LinearLayout>
-        </LinearLayout>
-
-        <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@drawable/ic_divider" >
-        </ImageView>
-
-        <LinearLayout
-            android:id="@+id/ll_sound"
-            android:layout_width="match_parent"
-            android:layout_height="70dp"
-            android:background="@drawable/ic_linear_selector"
-            android:gravity="center_vertical"
-            android:orientation="horizontal" >
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_weight="60"
-                android:orientation="horizontal" >
-
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:paddingLeft="15dp"
-                    android:src="@drawable/ic_sounds" >
-                </ImageView>
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:orientation="horizontal" >
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginLeft="5dp"
-                        android:text="@string/sound"
-                        android:textColor="@color/dark"
-                        android:textSize="18sp" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_weight="40"
-                android:gravity="right"
-                android:orientation="vertical" >
-
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginRight="15dp"
-                    android:src="@drawable/ic_arrow_right" >
-                </ImageView>
-            </LinearLayout>
-        </LinearLayout>
-
-        <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@drawable/ic_divider" >
-        </ImageView>
-
-        <LinearLayout
-            android:id="@+id/ll_distance"
-            android:layout_width="match_parent"
-            android:layout_height="70dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:visibility="gone" >
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_weight="70"
-                android:orientation="horizontal" >
-
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:paddingLeft="15dp"
-                    android:src="@drawable/ic_distance" >
-                </ImageView>
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:orientation="horizontal" >
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginLeft="5dp"
-                        android:text="@string/distance"
-                        android:textColor="@color/dark"
-                        android:textSize="18sp" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_weight="30"
-                android:gravity="right"
-                android:orientation="horizontal" >
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingRight="25dp" >
-
-                    <RadioGroup
-                        android:id="@+id/radioGroup"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:contentDescription="@string/distance"
-                        android:orientation="horizontal" >
-
-                        <RadioButton
-                            android:id="@+id/rb_jin"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/distance_jin"
-                            android:textColor="@color/dark" >
-                        </RadioButton>
-
-                        <RadioButton
-                            android:id="@+id/rb_middle"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/distance_middle"
-                            android:textColor="@color/dark" >
-                        </RadioButton>
-
-                        <RadioButton
-                            android:id="@+id/rb_yuan"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:checked="true"
-                            android:text="@string/distance_yuan"
-                            android:textColor="@color/dark" >
-                        </RadioButton>
-                    </RadioGroup>
-
-                    <ImageView
-                        android:id="@+id/iv_distance_info"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginLeft="10dp"
-                        android:src="@drawable/ic_info" />
-                </LinearLayout>
-            </LinearLayout>
-        </LinearLayout>
-
-        <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@drawable/ic_divider"
-            android:visibility="gone" >
-        </ImageView>
-
-        <LinearLayout
-            android:id="@+id/ll_location"
-            android:layout_width="match_parent"
-            android:layout_height="70dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal" >
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_weight="55"
-                android:orientation="horizontal"
-                android:paddingLeft="15dp" >
-
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:src="@drawable/ic_location" >
-                </ImageView>
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:orientation="horizontal" >
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginLeft="5dp"
-                        android:text="@string/location_service"
+                        android:text="@string/not_disturb"
                         android:textColor="@color/dark"
-                        android:textSize="18sp" />
+                        android:textSize="@dimen/txt_size_15" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -336,13 +67,12 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="45"
                 android:gravity="right"
-                android:orientation="horizontal"
-                android:paddingRight="25dp" >
+                android:orientation="vertical" >
 
                 <CheckBox
-                    android:id="@+id/cb_location_switch"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginRight="15dp"
                     android:button="@drawable/cb_switch" >
                 </CheckBox>
             </LinearLayout>
@@ -350,15 +80,15 @@
 
         <ImageView
             android:layout_width="match_parent"
-            android:layout_height="1dp"
+            android:layout_height="wrap_content"
             android:background="@drawable/ic_divider" >
         </ImageView>
 
         <LinearLayout
-            android:id="@+id/ll_battery"
+            android:id="@+id/ll_record"
             android:layout_width="match_parent"
-            android:layout_height="70dp"
-            android:background="@drawable/ic_linear_selector"
+            android:layout_height="50dp"
+            android:background="@drawable/bg_item_selector"
             android:gravity="center_vertical"
             android:orientation="horizontal" >
 
@@ -366,28 +96,29 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="60"
+                android:gravity="center_vertical"
                 android:orientation="horizontal" >
 
                 <ImageView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:paddingLeft="15dp"
-                    android:src="@drawable/ic_battery" >
+                    android:src="@drawable/ic_record" >
                 </ImageView>
 
                 <LinearLayout
                     android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
                     android:gravity="center"
                     android:orientation="horizontal" >
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginLeft="5dp"
-                        android:text="@string/battery_icon"
+                        android:layout_marginLeft="10dp"
+                        android:text="@string/record"
                         android:textColor="@color/dark"
-                        android:textSize="18sp" />
+                        android:textSize="@dimen/txt_size_15" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -398,41 +129,145 @@
                 android:gravity="right"
                 android:orientation="vertical" >
 
-                <TextView
-                    android:id="@+id/tv_battery"
+                <ImageView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginRight="15dp"
-                    android:textColor="@color/dark" >
-                </TextView>
+                    android:src="@drawable/ic_arrow_right" >
+                </ImageView>
             </LinearLayout>
         </LinearLayout>
 
         <ImageView
             android:layout_width="match_parent"
-            android:layout_height="1dp"
+            android:layout_height="wrap_content"
+            android:background="@drawable/ic_divider" >
+        </ImageView>
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
             android:background="@drawable/ic_divider" >
         </ImageView>
 
         <LinearLayout
-            android:id="@+id/ll_delete_device"
+            android:id="@+id/ll_problem"
             android:layout_width="match_parent"
-            android:layout_height="70dp"
+            android:layout_height="50dp"
+            android:background="@drawable/bg_item_selector"
             android:gravity="center_vertical"
             android:orientation="horizontal" >
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="20dp"
-                android:text="@string/delete_device"
-                android:textColor="@color/blue"
-                android:textSize="20sp" />
+                android:layout_weight="60"
+                android:gravity="center_vertical"
+                android:orientation="horizontal" >
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingLeft="15dp"
+                    android:src="@drawable/ic_set" >
+                </ImageView>
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="horizontal" >
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="10dp"
+                        android:text="@string/problem"
+                        android:textColor="@color/dark"
+                        android:textSize="@dimen/txt_size_15" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="40"
+                android:gravity="right"
+                android:orientation="vertical" >
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginRight="15dp"
+                    android:src="@drawable/ic_arrow_right" >
+                </ImageView>
+            </LinearLayout>
         </LinearLayout>
 
         <ImageView
             android:layout_width="match_parent"
-            android:layout_height="1dp"
+            android:layout_height="wrap_content"
+            android:background="@drawable/ic_divider" >
+        </ImageView>
+
+        <LinearLayout
+            android:id="@+id/ll_about_me"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:background="@drawable/bg_item_selector"
+            android:gravity="center_vertical"
+            android:orientation="horizontal" >
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="60"
+                android:gravity="center_vertical"
+                android:orientation="horizontal" >
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingLeft="15dp"
+                    android:src="@drawable/ic_about_me" >
+                </ImageView>
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="horizontal" >
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="10dp"
+                        android:text="@string/about_me"
+                        android:textColor="@color/dark"
+                        android:textSize="@dimen/txt_size_15" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="40"
+                android:gravity="right"
+                android:orientation="vertical" >
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginRight="15dp"
+                    android:src="@drawable/ic_arrow_right" >
+                </ImageView>
+            </LinearLayout>
+        </LinearLayout>
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:background="@drawable/ic_divider" >
         </ImageView>
     </LinearLayout>

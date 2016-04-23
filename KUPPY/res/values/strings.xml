@@ -108,6 +108,8 @@
     <string name="about_ok">OK</string>
     <string name="message">With your new text message</string>
     <string name="about_available">Available</string>
+    <string name="about_me">About me</string>
+    <string name="new_info">New</string>
     <string name="name_is_null">The name is not null</string>
     <string name="input_name">input name</string>
     <string name="disturb_switch">Please open the disturb mode switch</string>
@@ -147,6 +149,7 @@
     <string name="from_gallery">Select from gllery</string>
     <string name="set_name">Set Name</string>
     <string name="setting">Setting</string>
+     <string name="problem">常见问题</string>
     <string name="camera">Camera</string>
     <string name="location">Location</string>
     <string name="recording">Recording</string>
@@ -174,7 +177,8 @@
     <string name="open_app">Open application</string>
     <string name="sos_detail">sos</string>
     <string name="anti_call">Fake Call</string>
-    <string name="call">Call</string>
+    <string name="call">Call E2</string>
+    <string name="scanning">没有扫描到外设</string>
     <string name="pic_count">Picture Counts：</string>
     <string name="ok">OK</string>
     <string name="alarm_cancel">Cancel</string>
@@ -189,7 +193,7 @@
     <string name="quite_mode_duration">Quiet Hours</string>
     <string name="device_setting">Settings</string>
     <string name="device">Device</string>
-    <string name="record">Voice Memos</string>
+    <string name="record">Record</string>
     <string name="change_picture">Change Picture</string>
     <string name="not_disturb">Not Disturb</string>
     <string name="battery_icon">battery</string>

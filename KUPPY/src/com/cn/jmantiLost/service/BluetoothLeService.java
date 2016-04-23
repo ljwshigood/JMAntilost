@@ -16,6 +16,7 @@
 
 package com.cn.jmantiLost.service;
 
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.UUID;
 
@@ -39,6 +40,7 @@ import android.os.Message;
 import android.util.Log;
 
 import com.cn.jmantiLost.impl.IDismissListener;
+import com.cn.jmantiLost.util.EncriptyUtils;
 import com.cn.jmantiLost.util.GattAttributes;
 
 /**
@@ -68,7 +70,7 @@ public class BluetoothLeService extends Service {
 
 	public final static String ACTION_GATT_RSSI = "com.example.bluetooth.le.ACTION_GATT_RSSI";
 	
-	public static final UUID SERVIE_UUID = UUID.fromString("00001802-0000-1000-8000-00805f9b34fb");
+	public static final UUID SERVIE_UUID = UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb");
 	
 	public static final UUID BATTERY_SERVICE_UUID = UUID.fromString("0000180f-0000-1000-8000-00805f9b34fb");
 	
@@ -107,7 +109,7 @@ public class BluetoothLeService extends Service {
 			showMessage("link loss Alert service not found!");
 			return;
 		}
-		alarmCharacter = alarmService.getCharacteristic(UUID.fromString("00002a06-0000-1000-8000-00805f9b34fb"));
+		alarmCharacter = alarmService.getCharacteristic(UUID.fromString("0000ffe2-0000-1000-8000-00805f9b34fb"));
 		if (alarmCharacter == null) {
 			connect(address);
 			showMessage("link loss Alert Level charateristic not found!");
@@ -116,6 +118,51 @@ public class BluetoothLeService extends Service {
 		alarmCharacter.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
 		byte[] value = { 0x01 };
 		alarmCharacter.setValue(value);
+		mBluetoothGatt.writeCharacteristic(alarmCharacter);
+	}
+	
+	public void sendMsg(String address,String msg) {
+ 		byte[] value;
+ 		try {
+ 			String message = EncriptyUtils.toStringHex(msg);
+ 			value = message.getBytes("UTF-8");
+ 			writeCharacter(address,value);
+ 		} catch (UnsupportedEncodingException e) {
+ 			e.printStackTrace();
+ 		}
+
+ 	}
+	
+	public void writeCharacter(String address,byte[] data) {
+		
+		BluetoothGattService alarmService =  null;
+		Log.e("liujw","############################send hex string  "+ data);
+		BluetoothGattCharacteristic alarmCharacter = null;
+		
+		if(mBluetoothGatt != null){
+			alarmService = mBluetoothGatt.getService(SERVIE_UUID);
+		}
+		if (alarmService == null) {
+			showMessage("link loss Alert service not found!");
+			return;
+		}
+		alarmCharacter = alarmService.getCharacteristic(UUID.fromString("0000ffe2-0000-1000-8000-00805f9b34fb"));
+		if (alarmCharacter == null) {
+			connect(address);
+			showMessage("link loss Alert Level charateristic not found!");
+			return;
+		}
+		alarmCharacter.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
+		
+		String aa = "" ;
+		
+		for(int i = 0 ;i < data.length ;i++){
+			aa += data[i];
+		}
+		
+		Log.e("liujw","############################send byte[] "+ aa);
+		
+		alarmCharacter.setValue(data);
 		mBluetoothGatt.writeCharacteristic(alarmCharacter);
 	}
 
@@ -211,8 +258,7 @@ public class BluetoothLeService extends Service {
 		}
 
 		@Override
-		public void onCharacteristicChanged(BluetoothGatt gatt,
-				BluetoothGattCharacteristic characteristic) {
+		public void onCharacteristicChanged(BluetoothGatt gatt,BluetoothGattCharacteristic characteristic) {
 			broadcastUpdate(ACTION_NOTIFY_DATA_AVAILABLE, characteristic,gatt.getDevice().getAddress());
 		}
 
@@ -277,13 +323,18 @@ public class BluetoothLeService extends Service {
 			}*/
 			
 			final byte[] data = characteristic.getValue();
-			if (data != null && data.length > 0) {
+			
+			String string = EncriptyUtils.bytesToHexString(data);
+			intent.putExtra(EXTRA_DATA, string);
+			intent.putExtra(BluetoothDevice.EXTRA_DEVICE, device);
+			
+			/*if (data != null && data.length > 0) {
 				final StringBuilder stringBuilder = new StringBuilder(data.length);
 				for (byte byteChar : data)
 					stringBuilder.append(String.format("%02X ", byteChar));
-				intent.putExtra(EXTRA_DATA, new String(data) + "\n"+ stringBuilder.toString());
+				//intent.putExtra(EXTRA_DATA, new String(data) + "\n"+ stringBuilder.toString());
 				intent.putExtra(BluetoothDevice.EXTRA_DEVICE, device);
-			}
+			}*/
 			
 		}
 		sendBroadcast(intent);

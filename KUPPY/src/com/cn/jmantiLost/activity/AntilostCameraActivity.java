@@ -46,6 +46,7 @@ import android.view.OrientationEventListener;
 import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
 import android.widget.ImageView;
@@ -118,6 +119,10 @@ public class AntilostCameraActivity extends Activity {
 		
 		AppContext.isAlarm = false ;
     	long time_s = System.currentTimeMillis();
+    	
+    	requestWindowFeature(Window.FEATURE_NO_TITLE);
+    	getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
+    	
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_antilost_camera);
 		PreferenceManager.setDefaultValues(this, R.xml.preferences, false);

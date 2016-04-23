@@ -18,7 +18,7 @@ import android.widget.TextView;
 
 import com.cn.jmantiLost.R;
 import com.cn.jmantiLost.activity.FunctionDetailActivity;
-import com.cn.jmantiLost.activity.MainFollowActivity;
+import com.cn.jmantiLost.activity.MainActivity;
 import com.cn.jmantiLost.bean.KeySetBean;
 import com.cn.jmantiLost.util.AppManager;
 
@@ -205,7 +205,7 @@ public class KeySetAdapter extends BaseAdapter implements OnItemClickListener{
 	@Override
 	public void onItemClick(AdapterView<?> parent, View view, int position,long id) {
 		if(position == 0){
-			Intent intent = new Intent(mContext, MainFollowActivity.class);
+			Intent intent = new Intent(mContext, MainActivity.class);
 			intent.putExtra("count", position + 1);
 			mContext.startActivity(intent);
 		}else{

@@ -17,7 +17,7 @@ import android.graphics.BitmapFactory;
 import android.util.Log;
 
 import com.cn.jmantiLost.R;
-import com.cn.jmantiLost.activity.MainFollowActivity;
+import com.cn.jmantiLost.activity.MainActivity;
 import com.cn.jmantiLost.bean.DeviceSetInfo;
 import com.cn.jmantiLost.bean.DisturbInfo;
 import com.cn.jmantiLost.service.BgMusicControlService;
@@ -157,7 +157,7 @@ public class AlarmManager {
 	 * @param string
 	 */
 	public void notifycationAlarm(Context context, String address, String string) {
-		Intent intent = new Intent(context, MainFollowActivity.class);
+		Intent intent = new Intent(context, MainActivity.class);
 		final NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 		Notification notification = new Notification(R.drawable.ic_launcher,"AntiLost Alarming", System.currentTimeMillis());
 		PendingIntent pendIntent = PendingIntent.getActivity(context, 0,intent, 0);

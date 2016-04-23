@@ -3,11 +3,8 @@ package com.cn.jmantiLost.service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import android.annotation.SuppressLint;
-import android.app.KeyguardManager.KeyguardLock;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -27,8 +24,6 @@ import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.Message;
-import android.os.PowerManager;
 import android.util.Log;
 
 import com.amap.api.location.AMapLocation;
@@ -36,18 +31,15 @@ import com.amap.api.location.AMapLocationListener;
 import com.amap.api.location.LocationManagerProxy;
 import com.amap.api.location.LocationProviderProxy;
 import com.cn.jmantiLost.R;
-import com.cn.jmantiLost.activity.KeySetActivity;
-import com.cn.jmantiLost.activity.MainFollowActivity;
+import com.cn.jmantiLost.activity.MainActivity;
 import com.cn.jmantiLost.application.AppContext;
 import com.cn.jmantiLost.bean.DeviceSetInfo;
 import com.cn.jmantiLost.bean.DisturbInfo;
-import com.cn.jmantiLost.bean.KeySetBean;
 import com.cn.jmantiLost.db.DatabaseManager;
 import com.cn.jmantiLost.util.AlarmManager;
 import com.cn.jmantiLost.util.Constant;
+import com.cn.jmantiLost.util.EncriptyUtils;
 import com.cn.jmantiLost.util.KeyFunctionUtil;
-import com.cn.jmantiLost.util.ScreenObserver;
-import com.cn.jmantiLost.view.FollowAlarmActivity;
 
 public class AlarmService extends Service implements AMapLocationListener, Runnable{
 
@@ -61,75 +53,6 @@ public class AlarmService extends Service implements AMapLocationListener, Runna
 
 	private BluetoothAdapter mBluetoothAdapter;
 
-	private Timer mTotalTimer = null;
-	
-	private static boolean isClick = false;
-	
-	private int mClickCount = 0;
-	
-	private static ClickOneTimer mClickOneTimer = null;
-	
-	private static ClickOthersTimer mClickOthersTimer = null ;
-	
-	private void createClickTimer(){
-		if(mClickOneTimer == null){
-			mClickOneTimer = new ClickOneTimer();
-			mTotalTimer.schedule(mClickOneTimer,800);
-		}
-	}
-	
-	private void createClickStaticTimer(){
-		if(mClickOthersTimer == null){
-			mClickOthersTimer = new ClickOthersTimer();
-			mTotalTimer.schedule(mClickOthersTimer, 2000);
-		}
-	}
-	
-	private void cancelClickTimer(){
-		if(mClickOneTimer != null){
-			mClickOneTimer.cancel();
-			mClickOneTimer = null ;
-		}
-	}
-	
-	private void cancelStaticClickTimer(){
-		if(mClickOthersTimer != null){
-			mClickOthersTimer.cancel();
-			mClickOthersTimer = null ;
-		}
-	}
-	
-	
-	class ClickOthersTimer extends TimerTask {
-
-		@Override
-		public void run() {
-			mHandlerOneClick.sendEmptyMessage(1);
-		}
-
-	}
-	
-	private void progressClickStatic(){
-		try {
-			
-			KeySetBean bean = DatabaseManager.getInstance(mContext).selectKeySetByCount(mClickCount);
-			KeyFunctionUtil.getInstance(mContext).actionKeyFunction(mContext,bean.getAction());	
-			isClick = false;
-			mClickCount = 0;
-			Log.e("HeadSetRecevier","########################mClickCount : "+mClickCount);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-	
-	class ClickOneTimer extends TimerTask {
-
-		@Override
-		public void run() {
-			mHandlerOneClick.sendEmptyMessage(0);
-		}
-	};
-	
 	private void dismissBleActivity() {
 		Intent intent = new Intent(Constant.DIALOG_FINISH);
 		sendBroadcast(intent);
@@ -137,50 +60,48 @@ public class AlarmService extends Service implements AMapLocationListener, Runna
 	
 	public void alarmDialog(Context context ,DeviceSetInfo info,String alarmInfo, int type) {
 		Intent intent = null ;
-		
-		Log.v("alarmService","###################alarmDialog");
 		switch (type) {
 		case Constant.DISCONNECT:
-			dismissBleActivity();
+			/*dismissBleActivity();
 			intent = new Intent(context,FollowAlarmActivity.class);
 			intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 			intent.putExtra("type", type);
 			intent.putExtra("alarm_info", alarmInfo);
 			intent.putExtra("deviceinfo", info);
-			startActivity(intent);
+			startActivity(intent);*/
 			break;
 		case Constant.DISTANCE:
 			
-			dismissBleActivity();
+			/*dismissBleActivity();
 			
 			intent = new Intent(context,FollowAlarmActivity.class);
 			intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 			intent.putExtra("type", type);
 			intent.putExtra("alarm_info", alarmInfo);
 			intent.putExtra("deviceinfo", info);
-			startActivity(intent);
+			startActivity(intent);*/
 			break;
 		case Constant.SENDDATA:
 			
-			dismissBleActivity();
+			/*dismissBleActivity();
 			intent = new Intent(context,FollowAlarmActivity.class);
 			intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 			intent.putExtra("type", type);
 			intent.putExtra("alarm_info", alarmInfo);
 			intent.putExtra("deviceinfo", info);
-			startActivity(intent);
+			startActivity(intent);*/
 			
 			break;
 		case Constant.READBATTERY:
 			
-			dismissBleActivity();
+			/*dismissBleActivity();
 			
 			intent = new Intent(context,FollowAlarmActivity.class);
 			intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 			intent.putExtra("type", type);
 			intent.putExtra("alarm_info", alarmInfo);
 			intent.putExtra("deviceinfo", info);
-			startActivity(intent);
+			startActivity(intent);*/
 			break;
 		default:
 			break;
@@ -204,60 +125,6 @@ public class AlarmService extends Service implements AMapLocationListener, Runna
 		
 	}
 	
-	private boolean isShow = true ;
-	
-	Handler mHandlerOneClick = new Handler(){
-
-		@Override
-		public void handleMessage(Message msg) {
-			super.handleMessage(msg);
-			switch (msg.what) {
-			case 0:
-				if (!mAlarmManager.isApplicationBroughtToBackground(mContext)) { // app 在前台
-					
-					if(AppContext.isShow){
-						progressTopTaskDeviceSendData(mIntent);
-						AppContext.isShow = false ;
-					}else{
-						String address = mIntent.getStringExtra(BluetoothDevice.EXTRA_DEVICE);
-						dismissBleActivity();
-						Intent intentDistance = new Intent(BgMusicControlService.CTL_ACTION);
-						intentDistance.putExtra("control", 2);
-						intentDistance.putExtra("address", address);
-						sendBroadcast(intentDistance);
-						AppContext.isShow = true ;
-					}
-					
-				}else if((mAlarmManager.isApplicationBroughtToBackground(mContext))) {
-					if(isShow){
-						progressDeviceSendData(mIntent);
-						isShow = false ;
-					}else{
-						String address = mIntent.getStringExtra(BluetoothDevice.EXTRA_DEVICE);
-						Intent intentDistance = new Intent(BgMusicControlService.CTL_ACTION);
-						intentDistance.putExtra("control", 2);
-						intentDistance.putExtra("address", address);
-						sendBroadcast(intentDistance);
-						isShow = true ;
-					}
-				}
-				
-				cancelClickTimer();
-				isClick = false;
-				mClickCount = 0 ;
-				break;
-			case 1:
-				cancelStaticClickTimer();
-				progressClickStatic();
-				break ;
-			default:
-				break;
-			}
-			
-		}
-		
-	};
-	
 	@Override
 	public IBinder onBind(Intent arg0) {
 		return null;
@@ -268,9 +135,6 @@ public class AlarmService extends Service implements AMapLocationListener, Runna
 			@Override
 			public void onServiceConnected(ComponentName componentName,IBinder service) {
 				AppContext.mBluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
-				
-				Log.e("AlarmService","####################onServiceConnected");
-
 				if (!AppContext.mBluetoothLeService.initialize()) {
 					stopSelf();
 				}
@@ -278,9 +142,6 @@ public class AlarmService extends Service implements AMapLocationListener, Runna
 
 			@Override
 			public void onServiceDisconnected(ComponentName componentName) {
-				
-				Log.e("liujw","####################onServiceDisconnected");
-				
 				AppContext.mBluetoothLeService = null;
 			}
 	};
@@ -303,13 +164,6 @@ public class AlarmService extends Service implements AMapLocationListener, Runna
 		filter.addAction(Intent.ACTION_SCREEN_OFF);
 		filter.addAction(Intent.ACTION_SCREEN_ON);
 		registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
-
-		Log.e("liujw", "######################alarmServcie : oncreate");
-		
-		mTotalTimer = new Timer(true);
-		
-		pm = (PowerManager)getSystemService(Context.POWER_SERVICE);
-		
 		initAmapLocation();
 	
 	};
@@ -321,7 +175,7 @@ public class AlarmService extends Service implements AMapLocationListener, Runna
 	private void initAmapLocation(){
 		aMapLocManager = LocationManagerProxy.getInstance(this);
 		aMapLocManager.requestLocationData(LocationProviderProxy.AMapNetwork, 2000, 10, this);
-		handler.postDelayed(this, 12000);// 设置超过12秒还没有定位到就停止定位
+		handler.postDelayed(this, 12000);
 	}
 	
 	@Override
@@ -329,14 +183,6 @@ public class AlarmService extends Service implements AMapLocationListener, Runna
 		scanLeDevice(true);
 		return super.onStartCommand(intent, flags, startId);
 	}
-	
-	private KeyguardLock mKeyguardLock = null;    
-
-	private ScreenObserver mScreenObserver;
-	
-	private PowerManager pm;  
-	
-	private PowerManager.WakeLock wakeLock;  
 	
 	private static IntentFilter makeGattUpdateIntentFilter() {
 		final IntentFilter intentFilter = new IntentFilter();
@@ -364,9 +210,6 @@ public class AlarmService extends Service implements AMapLocationListener, Runna
 			manager.cancel(NOTICE_ID);
 		}
 		scanLeDevice(false);
-		
-		mHandlerAudioBattery.removeCallbacks(autoReadBatteryRunable);
-		Log.e("liujw", "####################alarmServie onDestroy");
 	}
 
 	private ArrayList<DeviceSetInfo> mDeviceList = new ArrayList<DeviceSetInfo>();
@@ -377,24 +220,6 @@ public class AlarmService extends Service implements AMapLocationListener, Runna
 	
 	private Handler mHandlerAudioBattery = new Handler();
 	
-	private int readBatteryCount = 0 ;
-	
-	Runnable autoReadBatteryRunable = new Runnable() {
-		
-		@Override
-		public void run() {
-			readBatteryCount++ ;
-			if(readBatteryCount > 5){
-				return ;
-			}
-			if(AppContext.mBluetoothLeService != null){
-				AppContext.mBluetoothLeService.readBatteryCharacteristic();
-			}
-			mHandlerAudioBattery.postDelayed(autoReadBatteryRunable, 3000);
-		}
-	};
-	
-
 	private static final long SCAN_PERIOD = 30000;
 
 	private void scanLeDevice(final boolean enable) {
@@ -458,7 +283,7 @@ public class AlarmService extends Service implements AMapLocationListener, Runna
 		
 		@Override
 		public void run() {
-			// 处理后台运行的情况
+			
 			AppContext.mBluetoothLeService.close();
 			if(mIntent == null){
 				return ;
@@ -479,14 +304,9 @@ public class AlarmService extends Service implements AMapLocationListener, Runna
 			final String action = intent.getAction();
 			mIntent = intent ;
 			String address = intent.getStringExtra(BluetoothDevice.EXTRA_DEVICE);
+			String data = intent.getStringExtra(BluetoothLeService.EXTRA_DATA) ;
 			if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
-				
-				mClickCount = 0 ;
-				cancelClickTimer();
-				cancelStaticClickTimer();
-				
 				mHandler.postDelayed(mDisconnectRunnable, 3000);
-				mHandlerAudioBattery.removeCallbacks(autoReadBatteryRunable);
 				
 			} else if (BluetoothLeService.ACTION_GATT_RSSI.equals(action)) { // 超距离报警
 				if (!mAlarmManager.isApplicationBroughtToBackground(mContext)) {
@@ -495,18 +315,10 @@ public class AlarmService extends Service implements AMapLocationListener, Runna
 					progressRssi(intent);
 				}
 			} else if (BluetoothLeService.ACTION_NOTIFY_DATA_AVAILABLE.equals(action)) { //设备寻找手机报警
+				
+				String jiemi = EncriptyUtils.decryption(data);
 				if(AppContext.isAlarm == false){
 					return ;
-				}
-				mClickCount++ ;
-				Log.e("liujw","###########################ACTION_NOTIFY_DATA_AVAILABLE: click count : "+mClickCount); 
-				if(isClick){
-					cancelClickTimer();
-					createClickStaticTimer();
-				}else{
-					cancelStaticClickTimer();
-					createClickTimer();
-					isClick = true;
 				}
 				
 			} else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
@@ -527,7 +339,6 @@ public class AlarmService extends Service implements AMapLocationListener, Runna
 				
 				AppContext.mNotificationBean.setShowNotificationDialog(false);
 				
-				Log.e("AlarmService","##########################BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED");
 			}else if(BluetoothLeService.ACTION_READ_DATA_AVAILABLE.equals(action)){
 				byte[] msg = intent.getByteArrayExtra(BluetoothLeService.EXTRA_DATA);
 				if (msg != null) {
@@ -550,11 +361,9 @@ public class AlarmService extends Service implements AMapLocationListener, Runna
 		}
 		for (BluetoothGattService gattService : gattServices) {
 			if (gattService.getUuid().toString().startsWith("00001802")) {
-				List<BluetoothGattCharacteristic> gattCharacteristics = gattService
-						.getCharacteristics();
+				List<BluetoothGattCharacteristic> gattCharacteristics = gattService.getCharacteristics();
 				for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
-					if (gattCharacteristic.getUuid().toString()
-							.startsWith("00002a06")) {
+					if (gattCharacteristic.getUuid().toString().startsWith("00002a06")) {
 
 					}
 				}
@@ -563,8 +372,6 @@ public class AlarmService extends Service implements AMapLocationListener, Runna
 						.getCharacteristics();
 				for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
 					if (gattCharacteristic.getUuid().toString().startsWith("0000ffe1")) {
-						mHandlerAudioBattery.removeCallbacks(autoReadBatteryRunable);
-						mHandlerAudioBattery.post(autoReadBatteryRunable);
 						AppContext.mBluetoothLeService.setCharacteristicNotification(gattCharacteristic, true);
 					}
 				}
@@ -667,7 +474,7 @@ public class AlarmService extends Service implements AMapLocationListener, Runna
 	public void notifycationAlarm(Context context, String address,String string, int type) {
 
 		if (address == null) {
-			Intent intent = new Intent(context, MainFollowActivity.class);
+			Intent intent = new Intent(context, MainActivity.class);
 			manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 			Notification notification = new Notification(R.drawable.ic_launcher,
 					mContext.getString(R.string.notify_alarm),System.currentTimeMillis());
@@ -677,7 +484,7 @@ public class AlarmService extends Service implements AMapLocationListener, Runna
 			AppContext.mNotificationBean.setShowNotificationDialog(false);
 			AppContext.mNotificationBean.setNotificationID(NOTICE_ID);
 		} else {
-			Intent intent = new Intent(context, KeySetActivity.class);
+			Intent intent = new Intent(context, MainActivity.class);
 			manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 			Notification notification = new Notification(R.drawable.ic_launcher,mContext.getString(R.string.notify_alarm),
 					System.currentTimeMillis());

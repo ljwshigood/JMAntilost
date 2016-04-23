@@ -2,53 +2,32 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_main"
+    android:background="@drawable/bg_title"
     android:orientation="vertical" >
 
-    <include
-        android:id="@+id/include_head"
-        android:layout_width="match_parent"
-        android:layout_height="55dp"
-        layout="@layout/item_head" />
-
     <LinearLayout
+        android:id="@+id/ll_content"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="center"
-        android:orientation="horizontal" >
+        android:orientation="vertical" >
 
-        <LinearLayout
-            android:id="@+id/ll_info"
+        <ProgressBar
+            android:id="@+id/my_progressbar2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="vertical" >
+            android:indeterminate="true"
+            android:indeterminateDrawable="@anim/progressbar_anim"
+            android:maxHeight="67dp"
+            android:maxWidth="67dp"
+            android:minHeight="67dp"
+            android:minWidth="67dp" />
+    </LinearLayout>
 
-            <ImageView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@drawable/scanning" />
-
-            <TextView
-                android:id="@+id/tv_info"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:text="@string/find_device_info"
-                android:textColor="@android:color/black"
-                android:textSize="@dimen/txt_size_20"
-                android:visibility="visible" >
-            </TextView>
-        </LinearLayout>
-
-        <ListView
-            android:id="@+id/lv_scan_device"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:divider="@drawable/ic_divider"
-            android:listSelector="@drawable/ic_linear_selector"
-            android:visibility="gone" >
-        </ListView>
+    <LinearLayout
+        android:id="@+id/ll_buttom"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical" >
     </LinearLayout>
 
 </LinearLayout>
