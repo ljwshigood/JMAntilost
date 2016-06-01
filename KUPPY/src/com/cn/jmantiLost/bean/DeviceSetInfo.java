@@ -13,8 +13,18 @@ public class DeviceSetInfo implements Serializable{
 
 	private String filePath;
 	
+	private long time ;
+	
 	//private double distance;
 	
+	public long getTime() {
+		return time;
+	}
+
+	public void setTime(long time) {
+		this.time = time;
+	}
+
 	private int distanceType ;
 	
 	private String lat ;

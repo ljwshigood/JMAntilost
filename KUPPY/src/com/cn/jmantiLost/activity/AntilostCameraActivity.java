@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -51,10 +50,12 @@ import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
+import android.widget.Toast;
 
 import com.cn.jmantiLost.R;
 import com.cn.jmantiLost.application.AppContext;
 import com.cn.jmantiLost.service.BluetoothLeService;
+import com.cn.jmantiLost.util.EncriptyUtils;
 import com.cn.jmantiLost.view.AntilostPreview;
 
 
@@ -71,8 +72,6 @@ public class AntilostCameraActivity extends Activity {
 	private boolean supports_auto_stabilise = false;
 	private boolean supports_force_video_4k = false;
 
-	// for testing:
-	public boolean is_test = false;
 	public Bitmap gallery_bitmap = null;
 	
 	
@@ -80,27 +79,29 @@ public class AntilostCameraActivity extends Activity {
 		final IntentFilter intentFilter = new IntentFilter();
 		intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
 		intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
-		intentFilter
-				.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
+		intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
 		intentFilter.addAction(BluetoothLeService.ACTION_NOTIFY_DATA_AVAILABLE);
 		intentFilter.addAction(BluetoothLeService.ACTION_GATT_RSSI);
 		return intentFilter;
 	}
-	private boolean isCamera = true;
 	
 	private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
 		@Override
 		public void onReceive(Context context, Intent intent) {
 			final String action = intent.getAction();
+			String data = intent.getStringExtra(BluetoothLeService.EXTRA_DATA) ;
 			if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
-			} else if (BluetoothLeService.ACTION_GATT_DISCONNECTED
-					.equals(action)) {
-			} else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED
-					.equals(action)) {
+				
+			} else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
+				
+			} else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
 
 			} else if (BluetoothLeService.ACTION_NOTIFY_DATA_AVAILABLE.equals(action)) {
-				
-				takePicture();
+				String jiemi = EncriptyUtils.decryption(data);
+				if(jiemi.startsWith("134a")){
+					takePicture();
+				}
+			
 			}
 		}
 	};
@@ -108,81 +109,51 @@ public class AntilostCameraActivity extends Activity {
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
-		AppContext.isAlarm = true ;
+		unregisterReceiver(mGattUpdateReceiver) ;
 	};
+	
+	private Context mContext ;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
-		if( MyDebug.LOG ) {
-			Log.d(TAG, "onCreate");
-		}
 		
-		AppContext.isAlarm = false ;
-    	long time_s = System.currentTimeMillis();
-    	
     	requestWindowFeature(Window.FEATURE_NO_TITLE);
     	getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
     	
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_antilost_camera);
+		mContext = AntilostCameraActivity.this ;
+		
+		Toast.makeText(mContext,mContext.getString(R.string.initial_camera),Toast.LENGTH_SHORT).show();
+		
+		AppContext.isAlarm = false ;
+		
 		PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
 
-		if( getIntent() != null && getIntent().getExtras() != null ) {
-			is_test = getIntent().getExtras().getBoolean("test_project");
-			if( MyDebug.LOG )
-				Log.d(TAG, "is_test: " + is_test);
-		}
-		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-
 		ActivityManager activityManager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
-		if( MyDebug.LOG ) {
-			Log.d(TAG, "standard max memory = " + activityManager.getMemoryClass() + "MB");
-			Log.d(TAG, "large max memory = " + activityManager.getLargeMemoryClass() + "MB");
-		}
-		//if( activityManager.getMemoryClass() >= 128 ) { // test
 		if( activityManager.getLargeMemoryClass() >= 128 ) {
 			supports_auto_stabilise = true;
 		}
-		if( MyDebug.LOG )
-			Log.d(TAG, "supports_auto_stabilise? " + supports_auto_stabilise);
-
-		// hack to rule out phones unlikely to have 4K video, so no point even offering the option!
-		// both S5 and Note 3 have 128MB standard and 512MB large heap (tested via Samsung RTL)
+		
 		if( activityManager.getLargeMemoryClass() >= 512 ) {
 			supports_force_video_4k = true;
 		}
-		if( MyDebug.LOG )
-			Log.d(TAG, "supports_force_video_4k? " + supports_force_video_4k);
-
-		// keep screen active - see http://stackoverflow.com/questions/2131948/force-screen-on
+		
         getWindow().addFlags(LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         mSensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
 		if( mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null ) {
-			if( MyDebug.LOG )
-				Log.d(TAG, "found accelerometer");
 			mSensorAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 		}
-		else {
-			if( MyDebug.LOG )
-				Log.d(TAG, "no support for accelerometer");
-		}
+		
 		if( mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null ) {
-			if( MyDebug.LOG )
-				Log.d(TAG, "found magnetic sensor");
 			mSensorMagnetic = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-		}
-		else {
-			if( MyDebug.LOG )
-				Log.d(TAG, "no support for magnetic sensor");
 		}
 
 		mLocationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+		
+		preview = (AntilostPreview)findViewById(R.id.ap_preview) ;
 
-		updateGalleryIcon();
-
-		preview = new AntilostPreview(this, savedInstanceState);
-		((ViewGroup) findViewById(R.id.preview)).addView(preview);
 		
         orientationEventListener = new OrientationEventListener(this) {
 			@Override
@@ -190,41 +161,17 @@ public class AntilostCameraActivity extends Activity {
 				AntilostCameraActivity.this.onOrientationChanged(orientation);
 			}
         };
-
-  //      final String done_first_time_key = "done_first_time";
-	//	boolean has_done_first_time = sharedPreferences.contains(done_first_time_key);
-        /*if( !has_done_first_time && !is_test ) {
-	        AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
-            alertDialog.setTitle("Open Camera");
-            alertDialog.setMessage(R.string.intro_text);
-            alertDialog.setPositiveButton(R.string.intro_ok, null);
-            alertDialog.show();
-
-			SharedPreferences.Editor editor = sharedPreferences.edit();
-			editor.putBoolean(done_first_time_key, true);
-			editor.apply();
-        }
-        */
-		if( MyDebug.LOG )
-			Log.d(TAG, "time for Activity startup: " + (System.currentTimeMillis() - time_s));
+        
+        layoutUI() ;
 	}
-
+	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
 	}
 
-	public boolean onKeyDown(int keyCode, KeyEvent event) { 
-		if( MyDebug.LOG )
-			Log.d(TAG, "onKeyDown: " + keyCode);
-        if( keyCode == KeyEvent.KEYCODE_MENU ) {
-        	// needed to support hardware menu button
-        	// tested successfully on Samsung S3 (via RTL)
-        	// see http://stackoverflow.com/questions/8264611/how-to-detect-when-user-presses-menu-key-on-their-android-device
-            return true;
-        }
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		
         return super.onKeyDown(keyCode, event); 
     }
 
@@ -252,36 +199,19 @@ public class AntilostCameraActivity extends Activity {
 	
     @Override
     protected void onResume() {
-		if( MyDebug.LOG )
-			Log.d(TAG, "onResume");
         super.onResume();
-        registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
         
+        registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
 		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        // set screen to max brightness - see http://stackoverflow.com/questions/11978042/android-screen-brightness-max-value
-		// done here rather than onCreate, so that changing it in preferences takes effect without restarting app
-		{
-	        WindowManager.LayoutParams layout = getWindow().getAttributes();
-			if( sharedPreferences.getBoolean("preference_max_brightness", true) ) {
-		        layout.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL;
-	        }
-			else {
-		        layout.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE;
-			}
-	        getWindow().setAttributes(layout); 
-		}
 
         mSensorManager.registerListener(accelerometerListener, mSensorAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
         mSensorManager.registerListener(magneticListener, mSensorMagnetic, SensorManager.SENSOR_DELAY_NORMAL);
         orientationEventListener.enable();
 
-		// Define a listener that responds to location updates
 		boolean store_location = sharedPreferences.getBoolean("preference_location", false);
 		if( store_location ) {
 			locationListener = new LocationListener() {
 			    public void onLocationChanged(Location location) {
-					if( MyDebug.LOG )
-						Log.d(TAG, "onLocationChanged");
 			    	preview.locationChanged(location);
 			    }
 
@@ -295,7 +225,6 @@ public class AntilostCameraActivity extends Activity {
 			    }
 			};
 			
-			// see https://sourceforge.net/p/opencamera/tickets/1/
 			if( mLocationManager.getAllProviders().contains(LocationManager.NETWORK_PROVIDER) ) {
 				mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
 			}
@@ -304,19 +233,29 @@ public class AntilostCameraActivity extends Activity {
 			}
 		}
 
-		layoutUI();
-
-		updateGalleryIcon(); // update in case images deleted whilst idle
-
-		preview.onResume();
-
+		mHandler.postDelayed(runnable, 50) ;
     }
-
+    
+    Runnable runnable = new Runnable() {
+		
+		@Override
+		public void run() {
+			mHandler.sendEmptyMessage(0) ;
+		}
+	};
+    
+    private Handler mHandler = new Handler(){
+    		public void handleMessage(android.os.Message msg) {
+    			layoutUI();
+    			updateGalleryIcon(); 
+    			preview.onResume();
+    		};
+    } ;
+    
+    
     @Override
     protected void onPause() {
-		if( MyDebug.LOG )
-			Log.d(TAG, "onPause");
-        super.onPause();
+        super.onPause() ;
         mSensorManager.unregisterListener(accelerometerListener);
         mSensorManager.unregisterListener(magneticListener);
         orientationEventListener.disable();
@@ -324,18 +263,13 @@ public class AntilostCameraActivity extends Activity {
             mLocationManager.removeUpdates(locationListener);
         }
 		preview.onPause();
+		
     }
 
     public void layoutUI() {
-		if( MyDebug.LOG )
-			Log.d(TAG, "layoutUI");
 		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
 		String ui_placement = sharedPreferences.getString("preference_ui_placement", "ui_right");
 		boolean ui_placement_right = ui_placement.equals("ui_right");
-		if( MyDebug.LOG )
-			Log.d(TAG, "ui_placement: " + ui_placement);
-		// new code for orientation fixed to landscape	
-		// the display orientation should be locked to landscape, but how many degrees is that?
 	    int rotation = this.getWindowManager().getDefaultDisplay().getRotation();
 	    int degrees = 0;
 	    switch (rotation) {
@@ -344,40 +278,24 @@ public class AntilostCameraActivity extends Activity {
 	        case Surface.ROTATION_180: degrees = 180; break;
 	        case Surface.ROTATION_270: degrees = 270; break;
 	    }
-	    // getRotation is anti-clockwise, but current_orientation is clockwise, so we add rather than subtract
-	    // relative_orientation is clockwise from landscape-left
-    	//int relative_orientation = (current_orientation + 360 - degrees) % 360;
     	int relative_orientation = (current_orientation + degrees) % 360;
-		if( MyDebug.LOG ) {
-			Log.d(TAG, "    current_orientation = " + current_orientation);
-			Log.d(TAG, "    degrees = " + degrees);
-			Log.d(TAG, "    relative_orientation = " + relative_orientation);
-		}
+    	
 		int ui_rotation = (360 - relative_orientation) % 360;
 		preview.setUIRotation(ui_rotation);
-		int align_left = RelativeLayout.ALIGN_LEFT;
-		int align_right = RelativeLayout.ALIGN_RIGHT;
-		//int align_top = RelativeLayout.ALIGN_TOP;
-		//int align_bottom = RelativeLayout.ALIGN_BOTTOM;
 		int left_of = RelativeLayout.LEFT_OF;
 		int right_of = RelativeLayout.RIGHT_OF;
-		int above = RelativeLayout.ABOVE;
-		int below = RelativeLayout.BELOW;
-		int align_parent_left = RelativeLayout.ALIGN_PARENT_LEFT;
-		int align_parent_right = RelativeLayout.ALIGN_PARENT_RIGHT;
-		int align_parent_top = RelativeLayout.ALIGN_PARENT_TOP;
-		int align_parent_bottom = RelativeLayout.ALIGN_PARENT_BOTTOM;
+		int align_parent_left = RelativeLayout.ALIGN_PARENT_LEFT ;
+		int align_parent_right = RelativeLayout.ALIGN_PARENT_RIGHT ;
+		int align_parent_top = RelativeLayout.ALIGN_PARENT_TOP ;
+		int align_parent_bottom = RelativeLayout.ALIGN_PARENT_BOTTOM ;
 		if( ( relative_orientation == 0 && ui_placement_right ) || ( relative_orientation == 180 && ui_placement_right ) || relative_orientation == 90 || relative_orientation == 270) {
 			if( !ui_placement_right && ( relative_orientation == 90 || relative_orientation == 270 ) ) {
-				//align_top = RelativeLayout.ALIGN_BOTTOM;
-				//align_bottom = RelativeLayout.ALIGN_TOP;
-				above = RelativeLayout.BELOW;
-				below = RelativeLayout.ABOVE;
 				align_parent_top = RelativeLayout.ALIGN_PARENT_BOTTOM;
 				align_parent_bottom = RelativeLayout.ALIGN_PARENT_TOP;
 			}
 			
 			View view = findViewById(R.id.gallery);
+			view.setVisibility(View.VISIBLE);			
 			RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
 			layoutParams.addRule(align_parent_left, 0);
 			layoutParams.addRule(align_parent_right, RelativeLayout.TRUE);
@@ -391,6 +309,7 @@ public class AntilostCameraActivity extends Activity {
 
 
 			view = findViewById(R.id.focus_mode);
+			view.setVisibility(View.VISIBLE);
 			layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
 			layoutParams.addRule(align_parent_top, RelativeLayout.TRUE);
 			layoutParams.addRule(align_parent_bottom, 0);
@@ -400,6 +319,7 @@ public class AntilostCameraActivity extends Activity {
 			view.setRotation(ui_rotation);
 
 			view = findViewById(R.id.flash);
+			view.setVisibility(View.VISIBLE);
 			layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
 			layoutParams.addRule(align_parent_top, RelativeLayout.TRUE);
 			layoutParams.addRule(align_parent_bottom, 0);
@@ -408,8 +328,11 @@ public class AntilostCameraActivity extends Activity {
 			view.setLayoutParams(layoutParams);
 			view.setRotation(ui_rotation);
 
-			view = findViewById(R.id.switch_video);
+			view = findViewById(R.id.switch_camera);
+			view.setVisibility(View.VISIBLE);
 			layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
+			layoutParams.addRule(align_parent_left, 0);
+			layoutParams.addRule(align_parent_right, 0);
 			layoutParams.addRule(align_parent_top, RelativeLayout.TRUE);
 			layoutParams.addRule(align_parent_bottom, 0);
 			layoutParams.addRule(left_of, R.id.flash);
@@ -417,54 +340,19 @@ public class AntilostCameraActivity extends Activity {
 			view.setLayoutParams(layoutParams);
 			view.setRotation(ui_rotation);
 
-			view = findViewById(R.id.switch_camera);
-			layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
-			layoutParams.addRule(align_parent_left, 0);
-			layoutParams.addRule(align_parent_right, 0);
-			layoutParams.addRule(align_parent_top, RelativeLayout.TRUE);
-			layoutParams.addRule(align_parent_bottom, 0);
-			layoutParams.addRule(left_of, R.id.switch_video);
-			layoutParams.addRule(right_of, 0);
-			view.setLayoutParams(layoutParams);
-			view.setRotation(ui_rotation);
-
-			view = findViewById(R.id.trash);
-			layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
-			layoutParams.addRule(align_parent_top, RelativeLayout.TRUE);
-			layoutParams.addRule(align_parent_bottom, 0);
-			layoutParams.addRule(left_of, R.id.switch_camera);
-			layoutParams.addRule(right_of, 0);
-			view.setLayoutParams(layoutParams);
-			view.setRotation(ui_rotation);
-
-			view = findViewById(R.id.share);
-			layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
-			layoutParams.addRule(align_parent_top, RelativeLayout.TRUE);
-			layoutParams.addRule(align_parent_bottom, 0);
-			layoutParams.addRule(left_of, R.id.trash);
-			layoutParams.addRule(right_of, 0);
-			view.setLayoutParams(layoutParams);
-			view.setRotation(ui_rotation);
-
 			view = findViewById(R.id.take_photo);
+			view.setVisibility(View.VISIBLE);
 			layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
 			layoutParams.addRule(align_parent_left, 0);
 			layoutParams.addRule(align_parent_right, RelativeLayout.TRUE);
 			view.setLayoutParams(layoutParams);
 			view.setRotation(ui_rotation);
 
-			view = findViewById(R.id.zoom);
-			layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
-			layoutParams.addRule(align_parent_left, 0);
-			layoutParams.addRule(align_parent_right, RelativeLayout.TRUE);
-			layoutParams.addRule(align_parent_top, 0);
-			layoutParams.addRule(align_parent_bottom, RelativeLayout.TRUE);
-			view.setLayoutParams(layoutParams);
-			view.setRotation(180.0f); // should always match the zoom_seekbar, so that zoom in and out are in the same directions
 
 		}
 		else {
 			View view = findViewById(R.id.switch_camera);
+			view.setVisibility(View.VISIBLE) ;
 			RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
 			layoutParams.addRule(align_parent_left, RelativeLayout.TRUE);
 			layoutParams.addRule(align_parent_right, 0);
@@ -475,7 +363,8 @@ public class AntilostCameraActivity extends Activity {
 			view.setLayoutParams(layoutParams);
 			view.setRotation(ui_rotation);
 
-			view = findViewById(R.id.switch_video);
+			view = findViewById(R.id.flash);
+			view.setVisibility(View.VISIBLE) ;
 			layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
 			layoutParams.addRule(align_parent_top, RelativeLayout.TRUE);
 			layoutParams.addRule(align_parent_bottom, 0);
@@ -484,16 +373,8 @@ public class AntilostCameraActivity extends Activity {
 			view.setLayoutParams(layoutParams);
 			view.setRotation(ui_rotation);
 
-			view = findViewById(R.id.flash);
-			layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
-			layoutParams.addRule(align_parent_top, RelativeLayout.TRUE);
-			layoutParams.addRule(align_parent_bottom, 0);
-			layoutParams.addRule(left_of, 0);
-			layoutParams.addRule(right_of, R.id.switch_video);
-			view.setLayoutParams(layoutParams);
-			view.setRotation(ui_rotation);
-
 			view = findViewById(R.id.focus_mode);
+			view.setVisibility(View.VISIBLE) ;
 			layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
 			layoutParams.addRule(align_parent_top, RelativeLayout.TRUE);
 			layoutParams.addRule(align_parent_bottom, 0);
@@ -504,6 +385,7 @@ public class AntilostCameraActivity extends Activity {
 
 
 			view = findViewById(R.id.gallery);
+			view.setVisibility(View.VISIBLE) ;
 			layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
 			layoutParams.addRule(align_parent_top, RelativeLayout.TRUE);
 			layoutParams.addRule(align_parent_bottom, 0);
@@ -511,46 +393,18 @@ public class AntilostCameraActivity extends Activity {
 			layoutParams.addRule(right_of, R.id.focus_mode);
 			view.setLayoutParams(layoutParams);
 			view.setRotation(ui_rotation);
-
-			view = findViewById(R.id.share);
-			layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
-			layoutParams.addRule(align_parent_top, RelativeLayout.TRUE);
-			layoutParams.addRule(align_parent_bottom, 0);
-			layoutParams.addRule(left_of, 0);
-			layoutParams.addRule(right_of, R.id.gallery);
-			view.setLayoutParams(layoutParams);
-			view.setRotation(ui_rotation);
-
-			view = findViewById(R.id.trash);
-			layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
-			layoutParams.addRule(align_parent_top, RelativeLayout.TRUE);
-			layoutParams.addRule(align_parent_bottom, 0);
-			layoutParams.addRule(left_of, 0);
-			layoutParams.addRule(right_of, R.id.share);
-			view.setLayoutParams(layoutParams);
-			view.setRotation(ui_rotation);
-
+			
 			view = findViewById(R.id.take_photo);
+			view.setVisibility(View.VISIBLE) ;
 			layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
 			layoutParams.addRule(align_parent_left, RelativeLayout.TRUE);
 			layoutParams.addRule(align_parent_right, 0);
 			view.setLayoutParams(layoutParams);
 			view.setRotation(ui_rotation);
-
-			view = findViewById(R.id.zoom);
-			layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
-			layoutParams.addRule(align_parent_left, RelativeLayout.TRUE);
-			layoutParams.addRule(align_parent_right, 0);
-			layoutParams.addRule(align_parent_top, 0);
-			layoutParams.addRule(align_parent_bottom, RelativeLayout.TRUE);
-			view.setLayoutParams(layoutParams);
-			view.setRotation(180.0f); // should always match the zoom_seekbar, so that zoom in and out are in the same directions
 
 		}
 		
-		
 		{
-			// set icon for taking photos vs videos
 			ImageView view = (ImageView)findViewById(R.id.take_photo);
 			if( preview != null ) {
 				view.setImageResource(preview.isVideo() ? R.drawable.take_video : R.drawable.take_photo);
@@ -559,33 +413,23 @@ public class AntilostCameraActivity extends Activity {
     }
 
     private void onOrientationChanged(int orientation) {
-		/*if( MyDebug.LOG ) {
-			Log.d(TAG, "onOrientationChanged()");
-			Log.d(TAG, "orientation: " + orientation);
-			Log.d(TAG, "current_orientation: " + current_orientation);
-		}*/
+    	
 		if( orientation == OrientationEventListener.ORIENTATION_UNKNOWN )
 			return;
 		int diff = Math.abs(orientation - current_orientation);
 		if( diff > 180 )
 			diff = 360 - diff;
-		// only change orientation when sufficiently changed
 		if( diff > 60 ) {
 		    orientation = (orientation + 45) / 90 * 90;
 		    orientation = orientation % 360;
 		    if( orientation != current_orientation ) {
 			    this.current_orientation = orientation;
-				if( MyDebug.LOG ) {
-					Log.d(TAG, "current_orientation is now: " + current_orientation);
-				}
 				layoutUI();
 		    }
 		}
 	}
 
     public void clickedTakePhoto(View view) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "clickedTakePhoto");
     	this.takePicture();
     }
 
@@ -596,20 +440,14 @@ public class AntilostCameraActivity extends Activity {
     }
 
     public void clickedSwitchVideo(View view) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "clickedSwitchVideo");
 		this.preview.switchVideo(true, true);
     }
 
     public void clickedFlash(View view) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "clickedFlash");
     	this.preview.cycleFlash();
     }
     
     public void clickedFocusMode(View view) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "clickedFocusMode");
     	this.preview.cycleFocusMode();
     }
 
@@ -666,26 +504,13 @@ public class AntilostCameraActivity extends Activity {
 			if( MyDebug.LOG )
 				Log.d(TAG, "only found images");
 			media = image_media;
-		}
-		else if( image_media == null && video_media != null ) {
-			if( MyDebug.LOG )
-				Log.d(TAG, "only found videos");
+		}else if( image_media == null && video_media != null ) {
 			media = video_media;
 		}
 		else if( image_media != null && video_media != null ) {
-			if( MyDebug.LOG ) {
-				Log.d(TAG, "found images and videos");
-				Log.d(TAG, "latest image date: " + image_media.date);
-				Log.d(TAG, "latest video date: " + video_media.date);
-			}
 			if( image_media.date >= video_media.date ) {
-				if( MyDebug.LOG )
-					Log.d(TAG, "latest image is newer");
 				media = image_media;
-			}
-			else {
-				if( MyDebug.LOG )
-					Log.d(TAG, "latest video is newer");
+			}else {
 				media = video_media;
 			}
 		}
@@ -693,33 +518,24 @@ public class AntilostCameraActivity extends Activity {
     }
 
     public void updateGalleryIconToBlank() {
-		if( MyDebug.LOG )
-			Log.d(TAG, "updateGalleryIconToBlank");
 		ImageView galleryButton = (ImageView) this.findViewById(R.id.gallery);
 	    int bottom = galleryButton.getPaddingBottom();
 	    int top = galleryButton.getPaddingTop();
 	    int right = galleryButton.getPaddingRight();
 	    int left = galleryButton.getPaddingLeft();
-	    /*if( MyDebug.LOG )
-			Log.d(TAG, "padding: " + bottom);*/
 	    galleryButton.setImageBitmap(null);
 		galleryButton.setImageResource(R.drawable.gallery);
-		// workaround for setImageResource also resetting padding, Android bug
 		galleryButton.setPadding(left, top, right, bottom);
 		gallery_bitmap = null;
     }
     
     public void updateGalleryIconToBitmap(Bitmap bitmap) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "updateGalleryIconToBitmap");
 		ImageView galleryButton = (ImageView) this.findViewById(R.id.gallery);
 		galleryButton.setImageBitmap(bitmap);
 		gallery_bitmap = bitmap;
     }
     
     public void updateGalleryIcon() {
-		if( MyDebug.LOG )
-			Log.d(TAG, "updateGalleryIcon");
     	long time_s = System.currentTimeMillis();
     	Media media = getLatestMedia();
 		Bitmap thumbnail = null;
@@ -732,13 +548,11 @@ public class AntilostCameraActivity extends Activity {
     		}
     		if( thumbnail != null ) {
 	    		if( media.orientation != 0 ) {
-	    			if( MyDebug.LOG )
-	    				Log.d(TAG, "thumbnail size is " + thumbnail.getWidth() + " x " + thumbnail.getHeight());
+	    			
 	    			Matrix matrix = new Matrix();
 	    			matrix.setRotate(media.orientation, thumbnail.getWidth() * 0.5f, thumbnail.getHeight() * 0.5f);
 	    			try {
 	    				Bitmap rotated_thumbnail = Bitmap.createBitmap(thumbnail, 0, 0, thumbnail.getWidth(), thumbnail.getHeight(), matrix, true);
-	        		    // careful, as rotated_thumbnail is sometimes not a copy!
 	        		    if( rotated_thumbnail != thumbnail ) {
 	        		    	thumbnail.recycle();
 	        		    	thumbnail = rotated_thumbnail;
@@ -751,24 +565,16 @@ public class AntilostCameraActivity extends Activity {
 	    		}
     		}
     	}
+    	
     	if( thumbnail != null ) {
-			if( MyDebug.LOG )
-				Log.d(TAG, "set gallery button to thumbnail");
 			updateGalleryIconToBitmap(thumbnail);
     	}
     	else {
-			if( MyDebug.LOG )
-				Log.d(TAG, "set gallery button to blank");
 			updateGalleryIconToBlank();
     	}
-		if( MyDebug.LOG )
-			Log.d(TAG, "time to update gallery icon: " + (System.currentTimeMillis() - time_s));
     }
     
     public void clickedGallery(View view) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "clickedGallery");
-		//Intent intent = new Intent(Intent.ACTION_VIEW, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
 		Uri uri = null;
 		Media media = getLatestMedia();
 		if( media != null ) {
@@ -776,79 +582,39 @@ public class AntilostCameraActivity extends Activity {
 		}
 
 		if( uri != null ) {
-			// check uri exists
-			if( MyDebug.LOG )
-				Log.d(TAG, "found most recent uri: " + uri);
 			try {
 				ContentResolver cr = getContentResolver();
 				ParcelFileDescriptor pfd = cr.openFileDescriptor(uri, "r");
 				if( pfd == null ) {
-					if( MyDebug.LOG )
-						Log.d(TAG, "uri no longer exists (1): " + uri);
 					uri = null;
 				}
 				pfd.close();
 			}
 			catch(IOException e) {
-				if( MyDebug.LOG )
-					Log.d(TAG, "uri no longer exists (2): " + uri);
 				uri = null;
 			}
 		}
 		if( uri == null ) {
 			uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
 		}
-		if( !is_test ) {
-			// don't do if testing, as unclear how to exit activity to finish test (for testGallery())
-			if( MyDebug.LOG )
-				Log.d(TAG, "launch uri:" + uri);
-			final String REVIEW_ACTION = "com.android.camera.action.REVIEW";
-			try {
-				// REVIEW_ACTION means we can view video files without autoplaying
-				Intent intent = new Intent(REVIEW_ACTION, uri);
+		
+		final String REVIEW_ACTION = "com.android.camera.action.REVIEW";
+		try {
+			Intent intent = new Intent(REVIEW_ACTION, uri);
+			this.startActivity(intent);
+		}catch(ActivityNotFoundException e) {
+			Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+			if( intent.resolveActivity(getPackageManager()) != null ) {
 				this.startActivity(intent);
-			}
-			catch(ActivityNotFoundException e) {
-				if( MyDebug.LOG )
-					Log.d(TAG, "REVIEW_ACTION intent didn't work, try ACTION_VIEW");
-				Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-				// from http://stackoverflow.com/questions/11073832/no-activity-found-to-handle-intent - needed to fix crash if no gallery app installed
-				//Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("blah")); // test
-				if( intent.resolveActivity(getPackageManager()) != null ) {
-					this.startActivity(intent);
-				}
-				else{
-					preview.showToast(null, "No Gallery app available");
-				}
+			}else{
+				preview.showToast(null, "No Gallery app available");
 			}
 		}
     }
 
-    static private void putIntentExtra(Intent intent, String key, List<String> values) {
-		if( values != null ) {
-			String [] values_arr = new String[values.size()];
-			int i=0;
-			for(String value: values) {
-				values_arr[i] = value;
-				i++;
-			}
-			intent.putExtra(key, values_arr);
-		}
 
-    }
-
-    public void clickedShare(View view) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "clickedShare");
-    	this.preview.clickedShare();
-    }
 
     public void clickedTrash(View view) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "clickedTrash");
-    	this.preview.clickedTrash();
-    	// Calling updateGalleryIcon() immediately has problem that it still returns the latest image that we've just deleted!
-    	// But works okay if we call after a delay. 100ms works fine on Nexus 7 and Galaxy Nexus, but set to 500 just to be safe.
     	final Handler handler = new Handler();
 		handler.postDelayed(new Runnable() {
 			@Override
@@ -859,19 +625,12 @@ public class AntilostCameraActivity extends Activity {
     }
 
     private void takePicture() {
-		if( MyDebug.LOG )
-			Log.d(TAG, "takePicture");
     	this.preview.takePicturePressed();
     }
 
 	@Override
 	protected void onSaveInstanceState(Bundle state) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "onSaveInstanceState");
 	    super.onSaveInstanceState(state);
-	    if( this.preview != null ) {
-	    	preview.onSaveInstanceState(state);
-	    }
 	}
 
     @Override
@@ -887,37 +646,15 @@ public class AntilostCameraActivity extends Activity {
                 	takePicture();
                     return true;
         		}
-        		else if( volume_keys.equals("volume_zoom") ) {
-        			if( keyCode == KeyEvent.KEYCODE_VOLUME_UP )
-        				this.preview.zoomIn();
-        			else
-        				this.preview.zoomOut();
-                    return true;
-        		}
-        		else if( volume_keys.equals("volume_exposure") ) {
-        			if( keyCode == KeyEvent.KEYCODE_VOLUME_UP )
-        				this.preview.changeExposure(1, true);
-        			else
-        				this.preview.changeExposure(-1, true);
-                    return true;
-        		}
-        		// else do nothing
             }
         }
         return super.dispatchKeyEvent(event);
     }
 
     public void broadcastFile(File file) {
-    	// note that the new method means that the new folder shows up as a file when connected to a PC via MTP (at least tested on Windows 8)
     	if( file.isDirectory() ) {
-    		//this.sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED, Uri.fromFile(file)));
-        	// ACTION_MEDIA_MOUNTED no longer allowed on Android 4.4! Gives: SecurityException: Permission Denial: not allowed to send broadcast android.intent.action.MEDIA_MOUNTED
-    		// note that we don't actually need to broadcast anything, the folder and contents appear straight away (both in Gallery on device, and on a PC when connecting via MTP)
-    		// also note that we definitely don't want to broadcast ACTION_MEDIA_SCANNER_SCAN_FILE or use scanFile() for folders, as this means the folder shows up as a file on a PC via MTP (and isn't fixed by rebooting!)
-    	}
-    	else {
-        	// both of these work fine, but using MediaScannerConnection.scanFile() seems to be preferred over sending an intent
-    		//this.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(file)));
+    		
+    	}else {
         	MediaScannerConnection.scanFile(this, new String[] { file.getAbsolutePath() }, null,
         			new MediaScannerConnection.OnScanCompletedListener() {
     		 		public void onScanCompleted(String path, Uri uri) {
@@ -939,34 +676,21 @@ public class AntilostCameraActivity extends Activity {
 		String folder_name = sharedPreferences.getString("preference_save_location", "OpenCamera");
 		File file = null;
 		if( folder_name.length() > 0 && folder_name.lastIndexOf('/') == folder_name.length()-1 ) {
-			// ignore final '/' character
 			folder_name = folder_name.substring(0, folder_name.length()-1);
 		}
-		//if( folder_name.contains("/") ) {
 		if( folder_name.startsWith("/") ) {
 			file = new File(folder_name);
 		}
 		else {
 	        file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), folder_name);
 		}
-		/*if( MyDebug.LOG ) {
-			Log.d(TAG, "folder_name: " + folder_name);
-			Log.d(TAG, "full path: " + file);
-		}*/
         return file;
     }
-
-    /** Create a File for saving an image or video */
+    
     @SuppressLint("SimpleDateFormat")
 	public File getOutputMediaFile(int type){
-        // To be safe, you should check that the SDCard is mounted
-        // using Environment.getExternalStorageState() before doing this.
 
     	File mediaStorageDir = getImageFolder();
-        // This location works best if you want the created images to be shared
-        // between applications and persist after your app has been uninstalled.
-
-        // Create the storage directory if it does not exist
         if( !mediaStorageDir.exists() ) {
             if( !mediaStorageDir.mkdirs() ) {
         		if( MyDebug.LOG )
@@ -997,11 +721,6 @@ public class AntilostCameraActivity extends Activity {
             }
             index = "_" + count; // try to find a unique filename
         }
-        
-
-		if( MyDebug.LOG ) {
-			Log.d(TAG, "getOutputMediaFile returns: " + mediaFile);
-		}
         return mediaFile;
     }
     
@@ -1018,31 +737,14 @@ public class AntilostCameraActivity extends Activity {
     	try {
     		File image_folder = this.getImageFolder();
 	        StatFs statFs = new StatFs(image_folder.getAbsolutePath());
-	        // cast to long to avoid overflow!
 	        long blocks = statFs.getAvailableBlocks();
 	        long size = statFs.getBlockSize();
 	        long free  = (blocks*size) / 1048576;
-			/*if( MyDebug.LOG ) {
-				Log.d(TAG, "freeMemory blocks: " + blocks + " size: " + size + " free: " + free);
-			}*/
 	        return free;
     	}
     	catch(IllegalArgumentException e) {
-    		// can fail on emulator, at least!
     		return -1;
     	}
     }
-    
-   /* public static String getDonateLink() {
-    	return "https://play.google.com/store/apps/details?id=harman.mark.donation";
-    }*/
 
-    /*public static String getDonateMarketLink() {
-    	return "market://details?id=harman.mark.donation";
-    }*/
-
-    // for testing:
-    public AntilostPreview getPreview() {
-    	return this.preview;
-    }
 }

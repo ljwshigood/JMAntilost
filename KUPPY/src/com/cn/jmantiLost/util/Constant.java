@@ -25,6 +25,8 @@ public class Constant {
 	
 	public static final String FINISH = "com.iwit.finish" ;
 	
+	public static final String VISIABLE = "com.iwit.visiable" ;
+	
 	public static final String DIALOG_FINISH = "com.iwit.dialog.finish" ;
 	
 }

@@ -19,8 +19,10 @@ import android.os.Handler;
 import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.cn.jmantiLost.R;
 import com.cn.jmantiLost.view.RecordingView;
 
 public class RecordManager {
@@ -77,13 +79,13 @@ public class RecordManager {
 		}
 	}
 	
-	private RecordingView mRvRecord;
+	private ImageView mRvRecord;
 	
-	public RecordingView getmRvRecord() {
+	public ImageView getmRvRecord() {
 		return mRvRecord;
 	}
 
-	public void setmRvRecord(RecordingView mRvRecord) {
+	public void setmRvRecord(ImageView mRvRecord) {
 		this.mRvRecord = mRvRecord;
 	}
 
@@ -162,39 +164,40 @@ public class RecordManager {
 		int x = (6 * m / 32768);// 通过这种算法计算出的音量大小在1-7之间
 		switch (x) {
 		case 1:
-			mRvRecord.setmClipSize(330);
+			mRvRecord.setImageResource(R.drawable.record_animate_14) ;
 			mRvRecord.invalidate();
 			break;
 		case 2:
-			mRvRecord.setmClipSize(210);
+			mRvRecord.setImageResource(R.drawable.record_animate_13) ;
 			mRvRecord.invalidate();
 			break;
 		case 3:
-			mRvRecord.setmClipSize(190);
+			mRvRecord.setImageResource(R.drawable.record_animate_12) ;
 			mRvRecord.invalidate();
 			break;
 		case 4:
-			mRvRecord.setmClipSize(100);
+			mRvRecord.setImageResource(R.drawable.record_animate_11) ;
 			mRvRecord.invalidate();
 			break;
 		case 5:
-			mRvRecord.setmClipSize(60);
+			mRvRecord.setImageResource(R.drawable.record_animate_10) ;
 			mRvRecord.invalidate();
 			break;
 		case 6:
-			mRvRecord.setmClipSize(30);
+			mRvRecord.setImageResource(R.drawable.record_animate_09) ;
 			mRvRecord.invalidate();
 			break;
 		case 7:
-			mRvRecord.setmClipSize(0);
+			mRvRecord.setImageResource(R.drawable.record_animate_08) ;
 			mRvRecord.invalidate();
 			break;
 		default:
-			mRvRecord.setmClipSize(500);
+			mRvRecord.setImageResource(R.drawable.record_animate_07) ;
 			mRvRecord.invalidate();
 			break;
 		}
 	}
+	
 
 	private String getTime() {
 		SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHH：mm：ss");

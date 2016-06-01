@@ -72,9 +72,13 @@ public class BluetoothLeService extends Service {
 	
 	public static final UUID SERVIE_UUID = UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb");
 	
+	public static final UUID SERVIE_UUID_2 = UUID.fromString("00001802-0000-1000-8000-00805f9b34fb");
+	
+	public static final UUID SERVIE_UUID_3 = UUID.fromString("0000180a-0000-1000-8000-00805f9b34fb");
+	
 	public static final UUID BATTERY_SERVICE_UUID = UUID.fromString("0000180f-0000-1000-8000-00805f9b34fb");
 	
-	public static final UUID BATTERY_CHACTER_UUID = UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb") ;
+	public static final UUID FIRE_CHACTER_UUID = UUID.fromString("00002a26-0000-1000-8000-00805f9b34fb") ;
 
 	public final static UUID UUID_HEART_RATE_MEASUREMENT = UUID.fromString(GattAttributes.HEART_RATE_MEASUREMENT);
 
@@ -96,47 +100,131 @@ public class BluetoothLeService extends Service {
 		Log.e(TAG, msg);
 	}
 	
-	public void writeCharacter(String address) {
+	public void writeCharacterOn(String address) {
 		
 		BluetoothGattService alarmService =  null;
 		
 		BluetoothGattCharacteristic alarmCharacter = null;
 		
 		if(mBluetoothGatt != null){
-			alarmService = mBluetoothGatt.getService(SERVIE_UUID);
+			alarmService = mBluetoothGatt.getService(SERVIE_UUID_2);
 		}
 		if (alarmService == null) {
 			showMessage("link loss Alert service not found!");
 			return;
 		}
-		alarmCharacter = alarmService.getCharacteristic(UUID.fromString("0000ffe2-0000-1000-8000-00805f9b34fb"));
+		alarmCharacter = alarmService.getCharacteristic(UUID.fromString("00002a06-0000-1000-8000-00805f9b34fb"));
 		if (alarmCharacter == null) {
-			connect(address);
+			//connect(address);
 			showMessage("link loss Alert Level charateristic not found!");
 			return;
 		}
-		alarmCharacter.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
+		alarmCharacter.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
 		byte[] value = { 0x01 };
 		alarmCharacter.setValue(value);
-		mBluetoothGatt.writeCharacteristic(alarmCharacter);
+		boolean status = mBluetoothGatt.writeCharacteristic(alarmCharacter);
+		Log.d(TAG, "write TXchar - status=" + status);
+		if(!status){
+			mReSendOnHandler.postDelayed(runnableOn, 500);
+		}
+		
+	}
+	
+	
+	
+	Runnable runnable = new Runnable() {
+		
+		@Override
+		public void run() {
+			writeCharacterOn(mBluetoothGatt.getDevice().getAddress()) ;
+		}
+	};
+	
+	Runnable runnableOn = new Runnable() {
+		
+		@Override
+		public void run() {
+			writeCharacterOFF(mBluetoothGatt.getDevice().getAddress()) ;
+		}
+	};
+	
+	
+	Runnable runnableOff = new Runnable() {
+		
+		@Override
+		public void run() {
+			writeCharacter(mBluetoothGatt.getDevice().getAddress(), mData) ;
+		}
+	};
+	
+	
+	private Handler mReSendOnHandler =new Handler() ;
+	
+	private Handler mReSendOffHandler =new Handler() ;
+	
+	private Handler mReSendHandler =new Handler() ;
+	
+	public void writeCharacterOFF(String address) {
+		
+		BluetoothGattService alarmService =  null;
+		
+		BluetoothGattCharacteristic alarmCharacter = null;
+		
+		if(mBluetoothGatt != null){
+			alarmService = mBluetoothGatt.getService(SERVIE_UUID_2);
+		}
+		if (alarmService == null) {
+			showMessage("link loss Alert service not found!");
+			return;
+		}
+		alarmCharacter = alarmService.getCharacteristic(UUID.fromString("00002a06-0000-1000-8000-00805f9b34fb"));
+		if (alarmCharacter == null) {
+			//connect(address);
+			showMessage("link loss Alert Level charateristic not found!");
+			return;
+		}
+		alarmCharacter.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
+		byte[] value = { 0x00 };
+		alarmCharacter.setValue(value);
+		boolean status = mBluetoothGatt.writeCharacteristic(alarmCharacter);
+		Log.d(TAG, "write TXchar - status=" + status);
+		if(!status){
+			mReSendOffHandler.postDelayed(runnableOff, 500);
+		}
 	}
 	
 	public void sendMsg(String address,String msg) {
  		byte[] value;
- 		try {
- 			String message = EncriptyUtils.toStringHex(msg);
- 			value = message.getBytes("UTF-8");
- 			writeCharacter(address,value);
- 		} catch (UnsupportedEncodingException e) {
- 			e.printStackTrace();
- 		}
-
+ 		/*String message = EncriptyUtils.toStringHex(msg);
+		value = message.getBytes("UTF-8");*/
+		value = hexToBytes(msg);
+		writeCharacter(address,value);
  	}
 	
+    public final byte[] hexToBytes(String s){
+    	//如果是奇数，就让它补一个零
+    	if(s.length()%2!=0){
+    		String s1=s.substring(0, s.length()-1);
+    		String s2=s.substring(s.length()-1,s.length());
+    		s=s1+"0"+s2;
+    	}
+    	byte[] bytes;
+    	bytes=new byte[s.length()/2];
+    	for(int i=0;i<bytes.length;i++){
+    		bytes[i]=(byte)Integer.parseInt(s.substring(i*2, i*2+2),16);
+    	}
+    	return bytes;
+    }
+	
+    private byte[] mData ;
+    
 	public void writeCharacter(String address,byte[] data) {
 		
+		mData = data ;
 		BluetoothGattService alarmService =  null;
+		
 		Log.e("liujw","############################send hex string  "+ data);
+		
 		BluetoothGattCharacteristic alarmCharacter = null;
 		
 		if(mBluetoothGatt != null){
@@ -152,19 +240,19 @@ public class BluetoothLeService extends Service {
 			showMessage("link loss Alert Level charateristic not found!");
 			return;
 		}
-		alarmCharacter.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
 		
-		String aa = "" ;
-		
-		for(int i = 0 ;i < data.length ;i++){
-			aa += data[i];
-		}
-		
-		Log.e("liujw","############################send byte[] "+ aa);
-		
+		alarmCharacter.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
 		alarmCharacter.setValue(data);
-		mBluetoothGatt.writeCharacteristic(alarmCharacter);
+		boolean status = mBluetoothGatt.writeCharacteristic(alarmCharacter);
+		
+		Log.d(TAG, "write TXchar - status=" + status);
+		
+		if(!status){
+			mReSendHandler.postDelayed(runnable, 500);
+		}
+	
 	}
+	
 
 	private Handler mHandler = new Handler() {
 
@@ -173,13 +261,12 @@ public class BluetoothLeService extends Service {
 			super.handleMessage(msg);
 			if(mIDismissListener != null){
 				mIDismissListener.dismiss();
-				//Toast.makeText(BluetoothLeService.this, "try again!", 1).show();
 			}
 		}
 
 	};
 
-	public void readBatteryCharacteristic(){
+	public void readFireWare(){
 		if (mBluetoothAdapter == null || mBluetoothGatt == null) {
 			Log.w(TAG, "BluetoothAdapter not initialized");
 			return;
@@ -189,11 +276,11 @@ public class BluetoothLeService extends Service {
 		BluetoothGattCharacteristic batteryCharacter = null;
 		
 		if(mBluetoothGatt != null){
-			alarmService = mBluetoothGatt.getService(BATTERY_SERVICE_UUID);
+			alarmService = mBluetoothGatt.getService(SERVIE_UUID_3);
 		}
 		
 		if(alarmService != null){
-			batteryCharacter = alarmService.getCharacteristic(UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb"));		
+			batteryCharacter = alarmService.getCharacteristic(UUID.fromString("00002a26-0000-1000-8000-00805f9b34fb"));		
 		}
 		
 		if(batteryCharacter != null){
@@ -201,7 +288,7 @@ public class BluetoothLeService extends Service {
 		}
 	}
 	
-	private void broadcastDeviceBleUpdate(final String action, String device) {
+	private void broadcastDeviceBleUpdate(final String action, BluetoothDevice device) {
 		final Intent intent = new Intent(action);
 		intent.putExtra(BluetoothDevice.EXTRA_DEVICE, device);
 		sendBroadcast(intent);
@@ -218,7 +305,7 @@ public class BluetoothLeService extends Service {
 			if (newState == BluetoothProfile.STATE_CONNECTED) {
 				intentAction = ACTION_GATT_CONNECTED;
 				mConnectionState = STATE_CONNECTED;
-				broadcastUpdate(intentAction);
+				broadcastUpdate(intentAction,gatt);
 				Log.i(TAG, "Connected to GATT server.");
 				// Attempts to discover services after successful connection.
 				Log.i(TAG, "Attempting to start service discovery:"+ mBluetoothGatt.discoverServices());
@@ -231,14 +318,14 @@ public class BluetoothLeService extends Service {
 				Log.e(TAG, "Disconnected from GATT server.");
 				//broadcastUpdate(intentAction);
 				//mHandler.sendEmptyMessage(0);
-				broadcastDeviceBleUpdate(intentAction, gatt.getDevice().getAddress());
+				broadcastDeviceBleUpdate(intentAction, gatt.getDevice());
 			}
 		}
 
 		@Override
 		public void onServicesDiscovered(BluetoothGatt gatt, int status) {
 			if (status == BluetoothGatt.GATT_SUCCESS) {
-				broadcastUpdate(ACTION_GATT_SERVICES_DISCOVERED);
+				broadcastUpdate(ACTION_GATT_SERVICES_DISCOVERED,gatt);
 			} else {
 				Log.w(TAG, "onServicesDiscovered received: " + status);
 			}
@@ -248,7 +335,7 @@ public class BluetoothLeService extends Service {
 		public void onCharacteristicRead(BluetoothGatt gatt,
 				BluetoothGattCharacteristic characteristic, int status) {
 			if (status == BluetoothGatt.GATT_SUCCESS) {
-				broadcastUpdate(ACTION_READ_DATA_AVAILABLE, characteristic,gatt.getDevice().getAddress());
+				broadcastUpdate(ACTION_READ_DATA_AVAILABLE, characteristic,gatt.getDevice());
 			}
 		}
 
@@ -259,7 +346,7 @@ public class BluetoothLeService extends Service {
 
 		@Override
 		public void onCharacteristicChanged(BluetoothGatt gatt,BluetoothGattCharacteristic characteristic) {
-			broadcastUpdate(ACTION_NOTIFY_DATA_AVAILABLE, characteristic,gatt.getDevice().getAddress());
+			broadcastUpdate(ACTION_NOTIFY_DATA_AVAILABLE, characteristic,gatt.getDevice());
 		}
 
 		@Override
@@ -280,12 +367,13 @@ public class BluetoothLeService extends Service {
 		sendBroadcast(intent);
 	}
 
-	private void broadcastUpdate(final String action) {
+	private void broadcastUpdate(final String action,BluetoothGatt gatt) {
 		final Intent intent = new Intent(action);
+		intent.putExtra(BluetoothDevice.EXTRA_DEVICE, gatt.getDevice());
 		sendBroadcast(intent);
 	}
 
-	private void broadcastUpdate(final String action,final BluetoothGattCharacteristic characteristic,String device) {
+	private void broadcastUpdate(final String action,final BluetoothGattCharacteristic characteristic,BluetoothDevice device) {
 		final Intent intent = new Intent(action);
 		if (UUID_HEART_RATE_MEASUREMENT.equals(characteristic.getUuid())) {
 			int flag = characteristic.getProperties();
@@ -301,26 +389,18 @@ public class BluetoothLeService extends Service {
 			System.out.println("Received heart rate: %d" + heartRate);
 			Log.d(TAG, String.format("Received heart rate: %d", heartRate));
 			intent.putExtra(EXTRA_DATA, String.valueOf(heartRate));
-		} else if(BATTERY_CHACTER_UUID.equals(characteristic.getUuid())){
+		} else if(FIRE_CHACTER_UUID.equals(characteristic.getUuid())){
 			final byte[] data = characteristic.getValue();
-			if (data != null && data.length > 0) {
-				final StringBuilder stringBuilder = new StringBuilder(data.length);
-				for (byte byteChar : data)
-					stringBuilder.append(String.format("%02X ", byteChar));
-				
-				Log.e(TAG,"############################broadcastUpdate : "+data[0]);
-				intent.putExtra(BATTERY_DATA,data);
+			try {
+				String string  = new String(data,"UTF-8");
+				intent.putExtra(EXTRA_DATA,string);
 				intent.putExtra(BluetoothDevice.EXTRA_DEVICE, device);
+				
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
 			}
+			
 		}else {
-			// For all other profiles, writes the data formatted in HEX.
-			/*final byte[] data = characteristic.getValue();
-			for (int i = 0; i < data.length; i++) {
-				Log.v("ww", "sa:" + data[i]);
-			}
-			if (data != null && data.length > 0) {
-				intent.putExtra(EXTRA_DATA, data);
-			}*/
 			
 			final byte[] data = characteristic.getValue();
 			
@@ -543,6 +623,14 @@ public class BluetoothLeService extends Service {
 			isRet = false ;
 		}
 		return isRet ;
+	}
+	
+	public String getGattAddress(){
+		String address = null ;
+		if(mBluetoothGatt != null || mBluetoothGatt.connect()){
+			address = mBluetoothGatt.getDevice().getAddress() ;
+		}
+		return address ;
 	}
 	
 }

@@ -18,7 +18,6 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -41,12 +40,12 @@ import android.media.MediaRecorder;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
-import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
@@ -58,7 +57,6 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
-import android.widget.ZoomControls;
 
 import com.cn.jmantiLost.R;
 import com.cn.jmantiLost.activity.AntilostCameraActivity;
@@ -131,7 +129,6 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 	private long last_free_memory_time = 0;
 
 	private boolean has_zoom = false;
-	private int zoom_factor = 0;
 	private int max_zoom_factor = 0;
 	private ScaleGestureDetector scaleGestureDetector;
 	private List<Integer> zoom_ratios = null;
@@ -165,14 +162,13 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 	private Location location = null;
 	public boolean has_set_location = false;
 	private float location_accuracy = 0.0f;
-	private Bitmap location_bitmap = null;
-	private Bitmap location_off_bitmap = null;
 	private Rect location_dest = new Rect();
 
 	class ToastBoxer {
 		public Toast toast = null;
 
 		ToastBoxer() {
+			System.currentTimeMillis() ;
 		}
 	}
 	private ToastBoxer switch_camera_toast = new ToastBoxer();
@@ -201,11 +197,6 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 	private boolean successfully_focused = false;
 	private long successfully_focused_time = -1;
 
-	private IntentFilter battery_ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-	private boolean has_battery_frac = false;
-	private float battery_frac = 0.0f;
-	private long last_battery_time = 0;
-
 	// accelerometer and geomagnetic sensor info
 	private final float sensor_alpha = 0.8f; // for filter
     private boolean has_gravity = false;
@@ -227,61 +218,37 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 	public boolean test_have_angle = false;
 	public float test_angle = 0.0f;
 	public String test_last_saved_image = null;
-
-	AntilostPreview(Context context) {
-		this(context, null);
+	
+	public AntilostPreview(Context context) {
+		super(context);
 	}
 
-	@SuppressWarnings("deprecation")
-	public
-	AntilostPreview(Context context, Bundle savedInstanceState) {
-		super(context);
-		if( MyDebug.LOG ) {
-			Log.d(TAG, "new Preview");
-		}
+	public AntilostPreview(Context context, AttributeSet attrs, int defStyle) {
+		super(context, attrs, defStyle);
+	}
 
-		// Install a SurfaceHolder.Callback so we get notified when the
-		// underlying surface is created and destroyed.
+	public AntilostPreview(Context context, AttributeSet attrs) {
+		super(context, attrs);
+		initAntilostPreview(context,null);
+	}
+
+	public void initAntilostPreview(Context context, Bundle savedInstanceState) {
+
 		mHolder = getHolder();
 		mHolder.addCallback(this);
-        // deprecated setting, but required on Android versions prior to 3.0
 		mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS); // deprecated
 
 	    scaleGestureDetector = new ScaleGestureDetector(context, new ScaleListener());
 
         if( savedInstanceState != null ) {
-    		if( MyDebug.LOG )
-    			Log.d(TAG, "have savedInstanceState");
     		cameraId = savedInstanceState.getInt("cameraId", 0);
-			if( MyDebug.LOG )
-				Log.d(TAG, "found cameraId: " + cameraId);
     		if( cameraId < 0 || cameraId >= Camera.getNumberOfCameras() ) {
-    			if( MyDebug.LOG )
-    				Log.d(TAG, "cameraID not valid for " + Camera.getNumberOfCameras() + " cameras!");
     			cameraId = 0;
     		}
-    		zoom_factor = savedInstanceState.getInt("zoom_factor", 0);
-			if( MyDebug.LOG )
-				Log.d(TAG, "found zoom_factor: " + zoom_factor);
         }
 
-    	location_bitmap = BitmapFactory.decodeResource(this.getResources(), R.drawable.earth);
-    	location_off_bitmap = BitmapFactory.decodeResource(this.getResources(), R.drawable.earth_off);
 	}
 	
-	/*private void previewToCamera(float [] coords) {
-		float alpha = coords[0] / (float)this.getWidth();
-		float beta = coords[1] / (float)this.getHeight();
-		coords[0] = 2000.0f * alpha - 1000.0f;
-		coords[1] = 2000.0f * beta - 1000.0f;
-	}*/
-
-	/*private void cameraToPreview(float [] coords) {
-		float alpha = (coords[0] + 1000.0f) / 2000.0f;
-		float beta = (coords[1] + 1000.0f) / 2000.0f;
-		coords[0] = alpha * (float)this.getWidth();
-		coords[1] = beta * (float)this.getHeight();
-	}*/
 
 	private void calculateCameraToPreviewMatrix() {
 		camera_to_preview_matrix.reset();
@@ -399,23 +366,13 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 			    }
 
 			    try {
-	        		if( MyDebug.LOG )
-	        			Log.d(TAG, "set focus areas parameters");
 			    	camera.setParameters(parameters);
-	        		if( MyDebug.LOG )
-	        			Log.d(TAG, "done");
 			    }
 			    catch(RuntimeException e) {
-			    	// just in case something has gone wrong
-	        		if( MyDebug.LOG )
-	        			Log.d(TAG, "failed to set parameters for focus area");
 	        		e.printStackTrace();
 			    }
             }
             else if( parameters.getMaxNumMeteringAreas() != 0 ) {
-        		if( MyDebug.LOG )
-        			Log.d(TAG, "set metering area");
-        		// don't set has_focus_area in this mode
 				ArrayList<Camera.Area> areas = getAreas(event.getX(), event.getY());
 		    	parameters.setMeteringAreas(areas);
 
@@ -423,9 +380,6 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 			    	camera.setParameters(parameters);
 			    }
 			    catch(RuntimeException e) {
-			    	// just in case something has gone wrong
-	        		if( MyDebug.LOG )
-	        			Log.d(TAG, "failed to set parameters for focus area");
 	        		e.printStackTrace();
 			    }
             }
@@ -438,16 +392,11 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
     private class ScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
     	@Override
     	public boolean onScale(ScaleGestureDetector detector) {
-    		if( AntilostPreview.this.camera != null && AntilostPreview.this.has_zoom ) {
-    			AntilostPreview.this.scaleZoom(detector.getScaleFactor());
-    		}
     		return true;
     	}
     }
     
     public void clearFocusAreas() {
-		if( MyDebug.LOG )
-			Log.d(TAG, "clearFocusAreas()");
 		if( camera == null ) {
 			return;
 		}
@@ -468,28 +417,16 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 		has_focus_area = false;
 		focus_success = FOCUS_DONE;
 		successfully_focused = false;
-        //Log.d(TAG, "camera parameters null? " + (camera.getParameters().getFocusAreas()==null));
     }
 
-    /*private void setCameraParameters() {
-	}*/
 	
 	public void surfaceCreated(SurfaceHolder holder) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "surfaceCreated()");
-		// The Surface has been created, acquire the camera and tell it where
-		// to draw.
 		this.has_surface = true;
 		this.openCamera();
 		this.setWillNotDraw(false); // see http://stackoverflow.com/questions/2687015/extended-surfaceviews-ondraw-method-never-called
 	}
 
 	public void surfaceDestroyed(SurfaceHolder holder) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "surfaceDestroyed()");
-		// Surface will be destroyed when we return, so stop the preview.
-		// Because the CameraDevice object is not a shared resource, it's very
-		// important to release it when the activity is paused.
 		this.has_surface = false;
 		this.closeCamera();
 	}
@@ -637,13 +574,6 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 	}
 	
 	private void openCamera() {
-		long debug_time = 0;
-		if( MyDebug.LOG ) {
-			Log.d(TAG, "openCamera()");
-			Log.d(TAG, "cameraId: " + cameraId);
-			debug_time = System.currentTimeMillis();
-		}
-		// need to init everything now, in case we don't open the camera (but these may already be initialised from an earlier call - e.g., if we are now switching to another camera)
         has_set_location = false;
 		has_received_location = false;
 		has_focus_area = false;
@@ -671,30 +601,19 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 		current_focus_index = -1;
 		showGUI(true);
 		if( !this.has_surface ) {
-			if( MyDebug.LOG ) {
-				Log.d(TAG, "preview surface not yet available");
-			}
 			return;
 		}
 		if( this.app_is_paused ) {
-			if( MyDebug.LOG ) {
-				Log.d(TAG, "don't open camera as app is paused");
-			}
 			return;
 		}
 		try {
 			camera = Camera.open(cameraId);
-		}
-		catch(RuntimeException e) {
-			if( MyDebug.LOG )
-				Log.e(TAG, "Failed to open camera: " + e.getMessage());
+		}catch(RuntimeException e) {
 			e.printStackTrace();
 			camera = null;
 		}
-		if( MyDebug.LOG ) {
-			//Log.d(TAG, "time after opening camera: " + (System.currentTimeMillis() - debug_time));
-		}
-		if( camera != null ) {
+		
+		if(camera != null) {
 			Activity activity = (Activity)this.getContext();
 	        this.setCameraDisplayOrientation(activity);
 	        new OrientationEventListener(activity) {
@@ -703,208 +622,48 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 					AntilostPreview.this.onOrientationChanged(orientation);
 				}
 	        }.enable();
-			if( MyDebug.LOG ) {
-				//Log.d(TAG, "time after setting orientation: " + (System.currentTimeMillis() - debug_time));
-			}
 
-			if( MyDebug.LOG )
-				Log.d(TAG, "call setPreviewDisplay");
 			try {
 				camera.setPreviewDisplay(mHolder);
-			}
-			catch(IOException e) {
-				if( MyDebug.LOG )
-					Log.e(TAG, "Failed to set preview display: " + e.getMessage());
+			}catch(IOException e) {
 				e.printStackTrace();
-			}
-			if( MyDebug.LOG ) {
-				//Log.d(TAG, "time after setting preview display: " + (System.currentTimeMillis() - debug_time));
 			}
 
 			SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this.getContext());
 
 			Camera.Parameters parameters = camera.getParameters();
 
-			// get available scene modes
-			// important, from docs:
-			// "Changing scene mode may override other parameters (such as flash mode, focus mode, white balance).
-			// For example, suppose originally flash mode is on and supported flash modes are on/off. In night
-			// scene mode, both flash mode and supported flash mode may be changed to off. After setting scene
-			// mode, applications should call getParameters to know if some parameters are changed."
-			scene_modes = parameters.getSupportedSceneModes();
-			String scene_mode = setupValuesPref(scene_modes, "preference_scene_mode", Camera.Parameters.SCENE_MODE_AUTO);
-			if( scene_mode != null && !parameters.getSceneMode().equals(scene_mode) ) {
-	        	parameters.setSceneMode(scene_mode);
-	        	// need to read back parameters, see comment above
-	        	camera.setParameters(parameters);
-				parameters = camera.getParameters();
-			}
-
-			this.has_zoom = parameters.isZoomSupported();
-			if( MyDebug.LOG )
-				Log.d(TAG, "has_zoom? " + has_zoom);
-		    ZoomControls zoomControls = (ZoomControls) activity.findViewById(R.id.zoom);
-			if( this.has_zoom ) {
-				this.max_zoom_factor = parameters.getMaxZoom();
-				try {
-					this.zoom_ratios = parameters.getZoomRatios();
-				}
-				catch(NumberFormatException e) {
-	        		// crash java.lang.NumberFormatException: Invalid int: " 500" reported in v1.4 on device "es209ra", Android 4.1, 3 Jan 2014
-					// this is from java.lang.Integer.invalidInt(Integer.java:138) - unclear if this is a bug in Open Camera, all we can do for now is catch it
-		    		if( MyDebug.LOG )
-		    			Log.e(TAG, "NumberFormatException in getZoomRatios()");
-					e.printStackTrace();
-					this.has_zoom = false;
-					this.zoom_ratios = null;
-				}
-			}
-
-			if( this.has_zoom ) {
-				if( sharedPreferences.getBoolean("preference_show_zoom_controls", true) ) {
-				    zoomControls.setIsZoomInEnabled(true);
-			        zoomControls.setIsZoomOutEnabled(true);
-			        zoomControls.setZoomSpeed(20);
-	
-			        zoomControls.setOnZoomInClickListener(new OnClickListener(){
-			            public void onClick(View v){
-			            	zoomIn();
-			            }
-			        });
-				    zoomControls.setOnZoomOutClickListener(new OnClickListener(){
-				    	public void onClick(View v){
-				    		zoomOut();
-				        }
-				    });
-					zoomControls.setVisibility(View.VISIBLE);
-				}
-				else {
-					zoomControls.setVisibility(View.INVISIBLE); // must be INVISIBLE not GONE, so we can still position the zoomSeekBar relative to it
-				}
-				
-			}
-			else {
-				zoomControls.setVisibility(View.GONE);
-			}
+        	parameters.setSceneMode(Camera.Parameters.SCENE_MODE_AUTO);
+        	camera.setParameters(parameters);
+			parameters = camera.getParameters();
 			
-			// get face detection supported
-			this.faces_detected = null;
-			this.supports_face_detection = parameters.getMaxNumDetectedFaces() > 0;
-			if( this.supports_face_detection ) {
-				this.using_face_detection = sharedPreferences.getBoolean("preference_face_detection", false);
-			}
-			else {
-				this.using_face_detection = false;
-			}
-			if( MyDebug.LOG ) {
-				Log.d(TAG, "supports_face_detection?: " + supports_face_detection);
-				Log.d(TAG, "using_face_detection?: " + using_face_detection);
-			}
-			if( this.using_face_detection ) {
-				class MyFaceDetectionListener implements Camera.FaceDetectionListener {
-				    @Override
-				    public void onFaceDetection(Face[] faces, Camera camera) {
-				    	faces_detected = new Face[faces.length];
-				    	System.arraycopy(faces, 0, faces_detected, 0, faces.length);				    	
-				    }
-				}
-				camera.setFaceDetectionListener(new MyFaceDetectionListener());
-			}
-
-			// get available color effects
-			color_effects = parameters.getSupportedColorEffects();
-			String color_effect = setupValuesPref(color_effects, "preference_color_effect", Camera.Parameters.EFFECT_NONE);
-			if( color_effect != null ) {
-	        	parameters.setColorEffect(color_effect);
-			}
-
-			// get available white balances
-			white_balances = parameters.getSupportedWhiteBalance();
-			String white_balance = setupValuesPref(white_balances, "preference_white_balance", Camera.Parameters.WHITE_BALANCE_AUTO);
-			if( white_balance != null ) {
-	        	parameters.setWhiteBalance(white_balance);
-			}
-
-			// get min/max exposure
-			exposures = null;
-			min_exposure = parameters.getMinExposureCompensation();
-			max_exposure = parameters.getMaxExposureCompensation();
-			if( min_exposure != 0 || max_exposure != 0 ) {
-				exposures = new Vector<String>();
-				for(int i=min_exposure;i<=max_exposure;i++) {
-					exposures.add("" + i);
-				}
-				String exposure_s = setupValuesPref(exposures, "preference_exposure", "0");
-				if( exposure_s != null ) {
-					try {
-						int exposure = Integer.parseInt(exposure_s);
-						if( MyDebug.LOG )
-							Log.d(TAG, "exposure: " + exposure);
-						parameters.setExposureCompensation(exposure);
-					}
-					catch(NumberFormatException exception) {
-						if( MyDebug.LOG )
-							Log.d(TAG, "exposure invalid format, can't parse to int");
-					}
-				}
-			}
-
-			// get available sizes
 	        sizes = parameters.getSupportedPictureSizes();
-			if( MyDebug.LOG ) {
-				for(int i=0;i<sizes.size();i++) {
-		        	Camera.Size size = sizes.get(i);
-		        	Log.d(TAG, "supported picture size: " + size.width + " , " + size.height);
-				}
-			}
+	        
 			current_size_index = -1;
 			String resolution_value = sharedPreferences.getString(getResolutionPreferenceKey(cameraId), "");
-			if( MyDebug.LOG )
-				Log.d(TAG, "resolution_value: " + resolution_value);
 			if( resolution_value.length() > 0 ) {
-				// parse the saved size, and make sure it is still valid
 				int index = resolution_value.indexOf(' ');
 				if( index == -1 ) {
-					if( MyDebug.LOG )
-						Log.d(TAG, "resolution_value invalid format, can't find space");
-				}
-				else {
+				
+				}else {
 					String resolution_w_s = resolution_value.substring(0, index);
 					String resolution_h_s = resolution_value.substring(index+1);
-					if( MyDebug.LOG ) {
-						Log.d(TAG, "resolution_w_s: " + resolution_w_s);
-						Log.d(TAG, "resolution_h_s: " + resolution_h_s);
-					}
 					try {
 						int resolution_w = Integer.parseInt(resolution_w_s);
-						if( MyDebug.LOG )
-							Log.d(TAG, "resolution_w: " + resolution_w);
 						int resolution_h = Integer.parseInt(resolution_h_s);
-						if( MyDebug.LOG )
-							Log.d(TAG, "resolution_h: " + resolution_h);
-						// now find size in valid list
 						for(int i=0;i<sizes.size() && current_size_index==-1;i++) {
 				        	Camera.Size size = sizes.get(i);
 				        	if( size.width == resolution_w && size.height == resolution_h ) {
 				        		current_size_index = i;
-								if( MyDebug.LOG )
-									Log.d(TAG, "set current_size_index to: " + current_size_index);
 				        	}
 						}
-						if( current_size_index == -1 ) {
-							if( MyDebug.LOG )
-								Log.e(TAG, "failed to find valid size");
-						}
-					}
-					catch(NumberFormatException exception) {
-						if( MyDebug.LOG )
-							Log.d(TAG, "resolution_value invalid format, can't parse w or h to int");
+					}catch(NumberFormatException exception) {
+						exception.printStackTrace() ;
 					}
 				}
 			}
 
 			if( current_size_index == -1 ) {
-				// set to largest
 				Camera.Size current_size = null;
 				for(int i=0;i<sizes.size();i++) {
 		        	Camera.Size size = sizes.get(i);
@@ -916,220 +675,71 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 			}
 			if( current_size_index != -1 ) {
 				Camera.Size current_size = sizes.get(current_size_index);
-	    		if( MyDebug.LOG )
-	    			Log.d(TAG, "Current size index " + current_size_index + ": " + current_size.width + ", " + current_size.height);
-
-	    		// now save, so it's available for PreferenceActivity
 				resolution_value = current_size.width + " " + current_size.height;
-				if( MyDebug.LOG ) {
-					Log.d(TAG, "save new resolution_value: " + resolution_value);
-				}
-				SharedPreferences.Editor editor = sharedPreferences.edit();
-				editor.putString(getResolutionPreferenceKey(cameraId), resolution_value);
-				editor.apply();
-
-				// now set the size
 	        	parameters.setPictureSize(current_size.width, current_size.height);
 			}
 			
-			
-    		/*if( MyDebug.LOG )
-    			Log.d(TAG, "Current image quality: " + parameters.getJpegQuality());*/
 			int image_quality = getImageQuality();
 			parameters.setJpegQuality(image_quality);
-    		if( MyDebug.LOG )
-    			Log.d(TAG, "image quality: " + image_quality);
 
-    		if( MyDebug.LOG ) {
-    			//Log.d(TAG, "time after reading camera parameters: " + (System.currentTimeMillis() - debug_time));
-    		}
-
-			// get available sizes
-    		initialiseVideoQuality(parameters);
-
-			current_video_quality = -1;
-			String video_quality_value_s = sharedPreferences.getString(getVideoQualityPreferenceKey(cameraId), "");
-			if( MyDebug.LOG )
-				Log.d(TAG, "video_quality_value: " + video_quality_value_s);
-			if( video_quality_value_s.length() > 0 ) {
-				// parse the saved video quality, and make sure it is still valid
-				// now find value in valid list
-				for(int i=0;i<video_quality.size() && current_video_quality==-1;i++) {
-		        	if( video_quality.get(i).equals(video_quality_value_s) ) {
-		        		current_video_quality = i;
-						if( MyDebug.LOG )
-							Log.d(TAG, "set current_video_quality to: " + current_video_quality);
-		        	}
-				}
-				if( current_video_quality == -1 ) {
-					if( MyDebug.LOG )
-						Log.e(TAG, "failed to find valid video_quality");
-				}
-			}
-			if( current_video_quality == -1 && video_quality.size() > 0 ) {
-				// default to highest quality
-				current_video_quality = 0;
-				if( MyDebug.LOG )
-					Log.d(TAG, "set video_quality value to " + video_quality.get(current_video_quality));
-			}
-			if( current_video_quality != -1 ) {
-	    		// now save, so it's available for PreferenceActivity
-				SharedPreferences.Editor editor = sharedPreferences.edit();
-				editor.putString(getVideoQualityPreferenceKey(cameraId), video_quality.get(current_video_quality));
-				editor.apply();
-			}
-
-    		// update parameters
     		camera.setParameters(parameters);
 
-    		// we do flash and focus after setting parameters, as these are done by calling separate functions, that themselves set the parameters directly
 			List<String> supported_flash_modes = parameters.getSupportedFlashModes(); // Android format
 		    View flashButton = (View) activity.findViewById(R.id.flash);
 			current_flash_index = -1;
+			
 			if( supported_flash_modes != null && supported_flash_modes.size() > 1 ) {
-				if( MyDebug.LOG )
-					Log.d(TAG, "flash modes: " + supported_flash_modes);
+				
 				supported_flash_values = convertFlashModesToValues(supported_flash_modes); // convert to our format (also resorts)
-
 				String flash_value = sharedPreferences.getString(getFlashPreferenceKey(cameraId), "");
 				if( flash_value.length() > 0 ) {
-					if( MyDebug.LOG )
-						Log.d(TAG, "found existing flash_value: " + flash_value);
 					if( !updateFlash(flash_value) ) {
-						if( MyDebug.LOG )
-							Log.d(TAG, "flash value no longer supported!");
 						updateFlash(0);
 					}
-				}
-				else {
-					if( MyDebug.LOG )
-						Log.d(TAG, "found no existing flash_value");
+				}else {
 					updateFlash(0);
 				}
-			}
-			else {
-				if( MyDebug.LOG )
-					Log.d(TAG, "flash not supported");
+			}else {
 				supported_flash_values = null;
 			}
+			
 			flashButton.setVisibility(supported_flash_values != null ? View.VISIBLE : View.GONE);
 
 			List<String> supported_focus_modes = parameters.getSupportedFocusModes(); // Android format
 		    View focusModeButton = (View) activity.findViewById(R.id.focus_mode);
 			current_focus_index = -1;
 			if( supported_focus_modes != null && supported_focus_modes.size() > 1 ) {
-				if( MyDebug.LOG )
-					Log.d(TAG, "focus modes: " + supported_focus_modes);
-				supported_focus_values = convertFocusModesToValues(supported_focus_modes); // convert to our format (also resorts)
-
+				
+				supported_focus_values = convertFocusModesToValues(supported_focus_modes); 
 				String focus_value = sharedPreferences.getString(getFocusPreferenceKey(cameraId), "");
 				if( focus_value.length() > 0 ) {
-					if( MyDebug.LOG )
-						Log.d(TAG, "found existing focus_value: " + focus_value);
-					if( !updateFocus(focus_value, false, false) ) { // don't need to save, as this is the value that's already saved
-						if( MyDebug.LOG )
-							Log.d(TAG, "focus value no longer supported!");
+					if( !updateFocus(focus_value, false, false) ) { 
 						updateFocus(0, false, true);
 					}
-				}
-				else {
-					if( MyDebug.LOG )
-						Log.d(TAG, "found no existing focus_value");
+				}else {
 					updateFocus(0, false, true);
 				}
-			}
-			else {
-				if( MyDebug.LOG )
-					Log.d(TAG, "focus not supported");
+			}else {
 				supported_focus_values = null;
 			}
-			focusModeButton.setVisibility(supported_focus_values != null ? View.VISIBLE : View.GONE);
 			
-			// now switch to video if saved
-			boolean saved_is_video = sharedPreferences.getBoolean(getIsVideoPreferenceKey(), false);
-			if( MyDebug.LOG ) {
-				Log.d(TAG, "saved_is_video: " + saved_is_video);
-			}
-			if( saved_is_video != this.is_video ) {
-				this.switchVideo(false, false);
-			}
+			focusModeButton.setVisibility(supported_focus_values != null ? View.VISIBLE : View.GONE);
 
-			// must be done after setting parameters, as this function may set parameters
-			if( this.has_zoom && zoom_factor != 0 ) {
-				int new_zoom_factor = zoom_factor;
-				zoom_factor = 0; // force zoomTo to actually update the zoom!
-				zoomTo(new_zoom_factor, true);
-			}
-
-			// Must set preview size before starting camera preview
-			// and must do it after setting photo vs video mode
-    		setPreviewSize(); // need to call this when we switch cameras, not just when we run for the first time
-			// Must call startCameraPreview after checking if face detection is present - probably best to call it after setting all parameters that we want
+    		setPreviewSize(); 
 			startCameraPreview();
-			if( MyDebug.LOG ) {
-				//Log.d(TAG, "time after starting camera preview: " + (System.currentTimeMillis() - debug_time));
-			}
 
 	    	final Handler handler = new Handler();
 			handler.postDelayed(new Runnable() {
 				@Override
 				public void run() {
-					tryAutoFocus(true, false); // so we get the autofocus when starting up - we do this on a delay, as calling it immediately means the autofocus doesn't seem to work properly sometimes (at least on Galaxy Nexus)
+					tryAutoFocus(true, false); 
 				}
 			}, 500);
-		}
-
-		if( MyDebug.LOG ) {
-			Log.d(TAG, "total time: " + (System.currentTimeMillis() - debug_time));
-		}
-	}
-
-	private String setupValuesPref(List<String> values, String key, String default_value) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "setupValuesPref, key: " + key);
-		if( values != null && values.size() > 0 ) {
-			if( MyDebug.LOG ) {
-				for(int i=0;i<values.size();i++) {
-		        	Log.d(TAG, "supported value: " + values.get(i));
-				}
-			}
-			SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this.getContext());
-			String value = sharedPreferences.getString(key, default_value);
-			if( MyDebug.LOG )
-				Log.d(TAG, "value: " + value);
-			// make sure result is valid
-			if( !values.contains(value) ) {
-				if( MyDebug.LOG )
-					Log.d(TAG, "value not valid!");
-				if( values.contains(default_value) )
-					value = default_value;
-				else
-					value = values.get(0);
-				if( MyDebug.LOG )
-					Log.d(TAG, "value is now: " + value);
-			}
-
-    		// now save, so it's available for PreferenceActivity
-			SharedPreferences.Editor editor = sharedPreferences.edit();
-			editor.putString(key, value);
-			editor.apply();
-
-        	return value;
-		}
-		else {
-			if( MyDebug.LOG )
-				Log.d(TAG, "values not supported");
-			return null;
 		}
 	}
 
 	public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "surfaceChanged " + w + ", " + h);
-		// surface size is now changed to match the aspect ratio of camera preview - so we shouldn't change the preview to match the surface size, so no need to restart preview here
-
         if( mHolder.getSurface() == null ) {
-            // preview surface does not exist
             return;
         }
         if( camera == null ) {
@@ -1137,48 +747,26 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
         }
 
 		AntilostCameraActivity main_activity = (AntilostCameraActivity)AntilostPreview.this.getContext();
-		main_activity.layoutUI(); // need to force a layoutUI update (e.g., so UI is oriented correctly when app goes idle, device is then rotated, and app is then resumed
+		main_activity.layoutUI() ;
 	}
 	
 	private void setPreviewSize() {
-		if( MyDebug.LOG )
-			Log.d(TAG, "setPreviewSize()");
+		
 		if( camera == null ) {
 			return;
 		}
+		
 		if( is_preview_started ) {
-			if( MyDebug.LOG )
-				Log.d(TAG, "setPreviewSize() shouldn't be called when preview is running");
 			throw new RuntimeException();
 		}
-		// set optimal preview size
+		
     	Camera.Parameters parameters = camera.getParameters();
-		if( MyDebug.LOG )
-			Log.d(TAG, "current preview size: " + parameters.getPreviewSize().width + ", " + parameters.getPreviewSize().height);
         supported_preview_sizes = parameters.getSupportedPreviewSizes();
         if( supported_preview_sizes.size() > 0 ) {
-	        /*Camera.Size best_size = supported_preview_sizes.get(0);
-	        for(Camera.Size size : supported_preview_sizes) {
-	    		if( MyDebug.LOG )
-	    			Log.d(TAG, "    supported preview size: " + size.width + ", " + size.height);
-	        	if( size.width*size.height > best_size.width*best_size.height ) {
-	        		best_size = size;
-	        	}
-	        }*/
         	Camera.Size best_size = getOptimalPreviewSize(supported_preview_sizes);
             parameters.setPreviewSize(best_size.width, best_size.height);
-    		if( MyDebug.LOG )
-    			Log.d(TAG, "new preview size: " + parameters.getPreviewSize().width + ", " + parameters.getPreviewSize().height);
     		this.setAspectRatio( ((double)parameters.getPreviewSize().width) / (double)parameters.getPreviewSize().height );
 
-    		/*List<int []> fps_ranges = parameters.getSupportedPreviewFpsRange();
-    		if( MyDebug.LOG ) {
-		        for(int [] fps_range : fps_ranges) {
-	    			Log.d(TAG, "    supported fps range: " + fps_range[Camera.Parameters.PREVIEW_FPS_MIN_INDEX] + " to " + fps_range[Camera.Parameters.PREVIEW_FPS_MAX_INDEX]);
-		        }
-    		}
-    		int [] fps_range = fps_ranges.get(fps_ranges.size()-1);
-	        parameters.setPreviewFpsRange(fps_range[Camera.Parameters.PREVIEW_FPS_MIN_INDEX], fps_range[Camera.Parameters.PREVIEW_FPS_MAX_INDEX]);*/
             camera.setParameters(parameters);
         }
 	}
@@ -1196,55 +784,6 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
         }
 	}
 	
-	private void initialiseVideoQuality(Camera.Parameters parameters) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "initialiseVideoQuality()");
-        video_quality = new Vector<String>();
-    	video_sizes = parameters.getSupportedVideoSizes(); 
-    	if( video_sizes == null ) {
-    		// if null, we should use the preview sizes - see http://stackoverflow.com/questions/14263521/android-getsupportedvideosizes-allways-returns-null
-    		if( MyDebug.LOG )
-    			Log.d(TAG, "take video_sizes from preview sizes");
-    		video_sizes = parameters.getSupportedPreviewSizes();
-    	}
-		if( MyDebug.LOG ) {
-			for(Camera.Size size : video_sizes) {
-    			Log.d(TAG, "    supported video size: " + size.width + ", " + size.height);
-			}
-        }
-        /*if( CamcorderProfile.hasProfile(cameraId, CamcorderProfile.QUALITY_HIGH) ) {
-        	video_quality.add("" + CamcorderProfile.QUALITY_HIGH);
-        }*/
-        if( CamcorderProfile.hasProfile(cameraId, CamcorderProfile.QUALITY_1080P) ) {
-        	addCustomResolutions(1920*1080, -1, CamcorderProfile.QUALITY_1080P);
-        	video_quality.add("" + CamcorderProfile.QUALITY_1080P);
-        }
-        if( CamcorderProfile.hasProfile(cameraId, CamcorderProfile.QUALITY_720P) ) {
-        	addCustomResolutions(1280*720, 1920*1080, CamcorderProfile.QUALITY_720P);
-        	video_quality.add("" + CamcorderProfile.QUALITY_720P);
-        }
-        if( CamcorderProfile.hasProfile(cameraId, CamcorderProfile.QUALITY_480P) ) {
-        	addCustomResolutions(720*480, 1280*720, CamcorderProfile.QUALITY_480P);
-        	video_quality.add("" + CamcorderProfile.QUALITY_480P);
-        }
-        if( CamcorderProfile.hasProfile(cameraId, CamcorderProfile.QUALITY_CIF) ) {
-        	addCustomResolutions(352*288, 720*480, CamcorderProfile.QUALITY_CIF);
-        	video_quality.add("" + CamcorderProfile.QUALITY_CIF);
-        }
-        if( CamcorderProfile.hasProfile(cameraId, CamcorderProfile.QUALITY_QVGA) ) {
-        	addCustomResolutions(320*240, 352*288, CamcorderProfile.QUALITY_QVGA);
-        	video_quality.add("" + CamcorderProfile.QUALITY_QVGA);
-        }
-        if( CamcorderProfile.hasProfile(cameraId, CamcorderProfile.QUALITY_QCIF) ) {
-        	addCustomResolutions(176*144, 320*240, CamcorderProfile.QUALITY_QCIF);
-        	video_quality.add("" + CamcorderProfile.QUALITY_QCIF);
-        }
-		if( MyDebug.LOG ) {
-			for(int i=0;i<video_quality.size();i++) {
-	        	Log.d(TAG, "supported video quality: " + video_quality.get(i));
-			}
-		}
-	}
 	
 	private CamcorderProfile getCamcorderProfile(String quality) {
 		if( MyDebug.LOG )
@@ -1299,8 +838,6 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 	}
 	
 	public CamcorderProfile getCamcorderProfile() {
-		// 4K UHD video is not yet supported by Android API (at least testing on Samsung S5 and Note 3, they do not return it via getSupportedVideoSizes(), nor via a CamcorderProfile (either QUALITY_HIGH, or anything else)
-		// but it does work if we explicitly set the resolution (at least tested on an S5)
 		AntilostCameraActivity main_activity = (AntilostCameraActivity)AntilostPreview.this.getContext();
 		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
 		if( cameraId == 0 && sharedPreferences.getBoolean("preference_force_video_4k", false) && main_activity.supportsForceVideo4K() ) {
@@ -1386,7 +923,6 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 		Activity activity = (Activity)this.getContext();
 		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(activity);
 		String preview_size = sharedPreferences.getString("preference_preview_size", "preference_preview_size_display");
-		// should always use wysiwig for video mode, otherwise we get incorrect aspect ratio shown when recording video (at least on Galaxy Nexus, e.g., at 640x480)
 		if( preview_size.equals("preference_preview_size_wysiwyg") || this.is_video ) {
 	        if( this.is_video ) {
 	        	if( MyDebug.LOG )
@@ -1407,14 +943,8 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 	        }
 		}
 		else {
-        	if( MyDebug.LOG )
-        		Log.d(TAG, "set preview aspect ratio from display size");
-        	// base target ratio from display size - means preview will fill the device's display as much as possible
-        	// but if the preview's aspect ratio differs from the actual photo/video size, the preview will show a cropped version of what is actually taken
             targetRatio = ((double)display_size.x) / (double)display_size.y;
 		}
-		if( MyDebug.LOG )
-			Log.d(TAG, "targetRatio: " + targetRatio);
 		return targetRatio;
 	}
 	
@@ -1527,8 +1057,6 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
         }
     }
 
-    // for the Preview - from http://developer.android.com/reference/android/hardware/Camera.html#setDisplayOrientation(int)
-	// note, if orientation is locked to landscape this is only called when setting up the activity, and will always have the same orientation
 	private void setCameraDisplayOrientation(Activity activity) {
 		if( MyDebug.LOG )
 			Log.d(TAG, "setCameraDisplayOrientation()");
@@ -1593,17 +1121,9 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 
 	@Override
 	public void onDraw(Canvas canvas) {
-		/*if( MyDebug.LOG )
-			Log.d(TAG, "onDraw()");*/
 		if( this.app_is_paused ) {
-    		/*if( MyDebug.LOG )
-    			Log.d(TAG, "onDraw(): app is paused");*/
 			return;
 		}
-		/*if( true ) // test
-			return;*/
-		/*if( MyDebug.LOG )
-			Log.d(TAG, "ui_rotation: " + ui_rotation);*/
 
 		AntilostCameraActivity main_activity = (AntilostCameraActivity)this.getContext();
 		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this.getContext());
@@ -1696,18 +1216,11 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 			this.getLocationOnScreen(gui_location);
 			int this_left = gui_location[0];
 			int diff_x = view_left - ( this_left + canvas.getWidth()/2 );
-    		/*if( MyDebug.LOG ) {
-    			Log.d(TAG, "view left: " + view_left);
-    			Log.d(TAG, "this left: " + this_left);
-    			Log.d(TAG, "canvas is " + canvas.getWidth() + " x " + canvas.getHeight());
-    		}*/
 			int max_x = canvas.getWidth();
 			if( ui_rotation == 90 ) {
-				// so we don't interfere with the top bar info (time, etc)
 				max_x -= (int)(1.5*text_y);
 			}
 			if( canvas.getWidth()/2 + diff_x > max_x ) {
-				// in case goes off the size of the canvas, for "black bar" cases (when preview aspect ratio != screen aspect ratio)
 				diff_x = max_x - canvas.getWidth()/2;
 			}
 			text_base_y = canvas.getHeight()/2 + diff_x - (int)(0.5*text_y);
@@ -1715,8 +1228,6 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 
 		final double close_angle = 1.0f;
 		if( camera != null && this.phase != PHASE_PREVIEW_PAUSED ) {
-			/*canvas.drawText("PREVIEW", canvas.getWidth() / 2,
-					canvas.getHeight() / 2, p);*/
 			boolean draw_angle = this.has_level_angle && sharedPreferences.getBoolean("preference_show_angle", true);
 			boolean draw_geo_direction = this.has_geo_direction && sharedPreferences.getBoolean("preference_show_geo_direction", true);
 			if( draw_angle ) {
@@ -1733,8 +1244,6 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 				if( Math.abs(this.level_angle) <= close_angle ) {
 					color = Color.GREEN;
 				}
-				//String string = "Angle: " + decimalFormat.format(this.level_angle) + (char)0x00B0;
-				//drawTextWithBackground(canvas, p, string, color, Color.BLACK, canvas.getWidth() / 2 + pixels_offset_x, text_base_y);
 			}
 			if( draw_geo_direction ) {
 				int color = Color.WHITE;
@@ -1749,10 +1258,7 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 				if( geo_angle < 0.0f ) {
 					geo_angle += 360.0f;
 				}
-				//String string = " Direction: " + Math.round(geo_angle) + (char)0x00B0;
-				//drawTextWithBackground(canvas, p, string, color, Color.BLACK, canvas.getWidth() / 2, text_base_y);
 			}
-			//if( this.is_taking_photo_on_timer ) {
 			if( this.isOnTimer() ) {
 				long remaining_time = (take_photo_time - System.currentTimeMillis() + 999)/1000;
 				if( MyDebug.LOG )
@@ -1783,10 +1289,6 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 			}
 		}
 		else if( camera == null ) {
-			/*if( MyDebug.LOG ) {
-				Log.d(TAG, "no camera!");
-				Log.d(TAG, "width " + canvas.getWidth() + " height " + canvas.getHeight());
-			}*/
 			p.setColor(Color.WHITE);
 			p.setTextSize(14 * scale + 0.5f); // convert dps to pixels
 			p.setTextAlign(Paint.Align.CENTER);
@@ -1794,21 +1296,8 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 			canvas.drawText("FAILED TO OPEN CAMERA.", canvas.getWidth() / 2, canvas.getHeight() / 2, p);
 			canvas.drawText("CAMERA MAY BE IN USE", canvas.getWidth() / 2, canvas.getHeight() / 2 + pixels_offset, p);
 			canvas.drawText("BY ANOTHER APPLICATION?", canvas.getWidth() / 2, canvas.getHeight() / 2 + 2*pixels_offset, p);
-			//canvas.drawRect(0.0f, 0.0f, 100.0f, 100.0f, p);
-			//canvas.drawRGB(255, 0, 0);
-			//canvas.drawRect(0.0f, 0.0f, canvas.getWidth(), canvas.getHeight(), p);
 		}
-		if( this.has_zoom && camera != null && sharedPreferences.getBoolean("preference_show_zoom", true) ) {
-			float zoom_ratio = this.zoom_ratios.get(zoom_factor)/100.0f;
-			// only show when actually zoomed in
-			if( zoom_ratio > 1.0f + 1.0e-5f ) {
-				// Convert the dps to pixels, based on density scale
-				int pixels_offset_y = 2*text_y;
-				p.setTextSize(14 * scale + 0.5f); // convert dps to pixels
-				p.setTextAlign(Paint.Align.CENTER);
-				drawTextWithBackground(canvas, p, "Zoom: " + zoom_ratio +"x", Color.WHITE, Color.BLACK, canvas.getWidth() / 2, text_base_y - pixels_offset_y);
-			}
-		}
+		
 		if( camera != null && sharedPreferences.getBoolean("preference_free_memory", true) ) {
 			int pixels_offset_y = 1*text_y;
 			p.setTextSize(14 * scale + 0.5f); // convert dps to pixels
@@ -1821,45 +1310,6 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 					last_free_memory_time = time_now;
 				}
 			}
-			/*if( free_memory_gb >= 0.0f ) {
-				drawTextWithBackground(canvas, p, "Free memory: " + decimalFormat.format(free_memory_gb) + "GB", Color.WHITE, Color.BLACK, canvas.getWidth() / 2, text_base_y - pixels_offset_y);
-			}*/
-		}
-		
-		{
-			if( !this.has_battery_frac || System.currentTimeMillis() > this.last_battery_time + 60000 ) {
-				// only check periodically - unclear if checking is costly in any way
-				Intent batteryStatus = main_activity.registerReceiver(null, battery_ifilter);
-				int battery_level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
-				int battery_scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
-				has_battery_frac = true;
-				battery_frac = battery_level/(float)battery_scale;
-				last_battery_time = System.currentTimeMillis();
-				if( MyDebug.LOG )
-					Log.d(TAG, "Battery status is " + battery_level + " / " + battery_scale + " : " + battery_frac);
-			}
-			//battery_frac = 0.2999f; // test
-			int battery_x = (int) (5 * scale + 0.5f); // convert dps to pixels
-			int battery_y = battery_x;
-			int battery_width = (int) (5 * scale + 0.5f); // convert dps to pixels
-			int battery_height = 4*battery_width;
-			if( ui_rotation == 90 || ui_rotation == 270 ) {
-				int diff = canvas.getWidth() - canvas.getHeight();
-				battery_x += diff/2;
-				battery_y -= diff/2;
-			}
-			if( ui_rotation == 90 ) {
-				battery_y = canvas.getHeight() - battery_y - battery_height;
-			}
-			if( ui_rotation == ( ui_placement_right ? 180 : 0 ) ) {
-				battery_x = canvas.getWidth() - battery_x - battery_width;
-			}
-			p.setColor(Color.WHITE);
-			p.setStyle(Paint.Style.STROKE);
-			canvas.drawRect(battery_x, battery_y, battery_x+battery_width, battery_y+battery_height, p);
-			p.setColor(battery_frac >= 0.3f ? Color.GREEN : Color.RED);
-			p.setStyle(Paint.Style.FILL);
-			canvas.drawRect(battery_x+1, battery_y+1+(1.0f-battery_frac)*(battery_height-2), battery_x+battery_width-1, battery_y+battery_height-1, p);
 		}
 		
 		boolean store_location = sharedPreferences.getBoolean("preference_location", false);
@@ -1879,17 +1329,6 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 				location_x = canvas.getWidth() - location_x - location_size;
 			}
 			location_dest.set(location_x, location_y, location_x + location_size, location_y + location_size);
-			if( has_set_location ) {
-				canvas.drawBitmap(location_bitmap, null, location_dest, p);
-				int indicator_x = location_x + location_size;
-				int indicator_y = location_y;
-				p.setStyle(Paint.Style.FILL_AND_STROKE);
-				p.setColor(location_accuracy < 25.01f ? Color.GREEN : Color.YELLOW);
-				canvas.drawCircle(indicator_x, indicator_y, location_size/10, p);
-			}
-			else {
-				canvas.drawBitmap(location_off_bitmap, null, location_dest, p);
-			}
 		}
 		
 		{
@@ -1911,7 +1350,7 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 			}
 	        Calendar c = Calendar.getInstance();
 	        String current_time = DateFormat.getTimeInstance().format(c.getTime());
-	        drawTextWithBackground(canvas, p, current_time, Color.WHITE, Color.BLACK, location_x, location_y);
+	        //drawTextWithBackground(canvas, p, current_time, Color.WHITE, Color.BLACK, location_x, location_y);
 	    }
 
 		canvas.restore();
@@ -2033,102 +1472,6 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 		paint.setColor(foreground);
 		canvas.drawText(text, location_x, location_y, paint);
 	}
-
-	public void scaleZoom(float scale_factor) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "scaleZoom() " + scale_factor);
-		if( this.camera != null && this.has_zoom ) {
-			float zoom_ratio = this.zoom_ratios.get(zoom_factor)/100.0f;
-			zoom_ratio *= scale_factor;
-
-			int new_zoom_factor = zoom_factor;
-			if( zoom_ratio <= 1.0f ) {
-				new_zoom_factor = 0;
-			}
-			else if( zoom_ratio >= zoom_ratios.get(max_zoom_factor)/100.0f ) {
-				new_zoom_factor = max_zoom_factor;
-			}
-			else {
-				// find the closest zoom level
-				if( scale_factor > 1.0f ) {
-					// zooming in
-    				for(int i=zoom_factor;i<zoom_ratios.size();i++) {
-    					if( zoom_ratios.get(i)/100.0f >= zoom_ratio ) {
-    						if( MyDebug.LOG )
-    							Log.d(TAG, "zoom int, found new zoom by comparing " + zoom_ratios.get(i)/100.0f + " >= " + zoom_ratio);
-    						new_zoom_factor = i;
-    						break;
-    					}
-    				}
-				}
-				else {
-					// zooming out
-    				for(int i=zoom_factor;i>=0;i--) {
-    					if( zoom_ratios.get(i)/100.0f <= zoom_ratio ) {
-    						if( MyDebug.LOG )
-    							Log.d(TAG, "zoom out, found new zoom by comparing " + zoom_ratios.get(i)/100.0f + " <= " + zoom_ratio);
-    						new_zoom_factor = i;
-    						break;
-    					}
-    				}
-				}
-			}
-			if( MyDebug.LOG ) {
-				Log.d(TAG, "ScaleListener.onScale zoom_ratio is now " + zoom_ratio);
-				Log.d(TAG, "    old zoom_factor " + zoom_factor + " ratio " + zoom_ratios.get(zoom_factor)/100.0f);
-				Log.d(TAG, "    chosen new zoom_factor " + new_zoom_factor + " ratio " + zoom_ratios.get(new_zoom_factor)/100.0f);
-			}
-			zoomTo(new_zoom_factor, true);
-		}
-	}
-	
-	public void zoomIn() {
-		if( MyDebug.LOG )
-			Log.d(TAG, "zoomIn()");
-    	if( zoom_factor < max_zoom_factor ) {
-			zoomTo(zoom_factor+1, true);
-        }
-	}
-	
-	public void zoomOut() {
-		if( MyDebug.LOG )
-			Log.d(TAG, "zoomOut()");
-		if( zoom_factor > 0 ) {
-			zoomTo(zoom_factor-1, true);
-        }
-	}
-	
-	public void zoomTo(int new_zoom_factor, boolean update_seek_bar) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "ZoomTo(): " + new_zoom_factor);
-		if( new_zoom_factor < 0 )
-			new_zoom_factor = 0;
-		if( new_zoom_factor > max_zoom_factor )
-			new_zoom_factor = max_zoom_factor;
-		// problem where we crashed due to calling this function with null camera should be fixed now, but check again just to be safe
-    	if(new_zoom_factor != zoom_factor && camera != null) {
-			Camera.Parameters parameters = camera.getParameters();
-			if( parameters.isZoomSupported() ) {
-				if( MyDebug.LOG )
-					Log.d(TAG, "zoom was: " + parameters.getZoom());
-				parameters.setZoom((int)new_zoom_factor);
-				try {
-					camera.setParameters(parameters);
-					zoom_factor = new_zoom_factor;
-					if( update_seek_bar ) {
-						Activity activity = (Activity)this.getContext();
-					}
-				}
-	        	catch(RuntimeException e) {
-	        		// crash reported in v1.3 on device "PANTONE 5 SoftBank 107SH (SBM107SH)"
-		    		if( MyDebug.LOG )
-		    			Log.e(TAG, "runtime exception in ZoomTo()");
-					e.printStackTrace();
-	        	}
-	    		clearFocusAreas();
-			}
-        }
-	}
 	
 	public void changeExposure(int change, boolean update_seek_bar) {
 		if( MyDebug.LOG )
@@ -2202,10 +1545,8 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 		    else {
 				showToast(switch_camera_toast, "Back Camera");
 		    }
-		    //zoom_factor = 0; // reset zoom when switching camera
 			this.openCamera();
 			
-			// we update the focus, in case we weren't able to do it when switching video with a camera that didn't support focus modes
 			updateFocusForVideo();
 		}
 	}
@@ -2222,32 +1563,22 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 			showToast(switch_video_toast, "Photo");
 		}
 		else {
-			//if( is_taking_photo_on_timer ) {
 			if( this.isOnTimer() ) {
 				takePictureTimerTask.cancel();
 				if( beepTimerTask != null ) {
 					beepTimerTask.cancel();
 				}
-				/*is_taking_photo_on_timer = false;
-				is_taking_photo = false;*/
 				this.phase = PHASE_NORMAL;
 				if( MyDebug.LOG )
 					Log.d(TAG, "cancelled camera timer");
 				this.is_video = true;
 			}
-			//else if( this.is_taking_photo ) {
 			else if( this.phase == PHASE_TAKING_PHOTO ) {
-				// wait until photo taken
 				if( MyDebug.LOG )
 					Log.d(TAG, "wait until photo taken");
 			}
 			else {
 				this.is_video = true;
-			}
-			
-			if( this.is_video ) {
-				showToast(switch_video_toast, "Video");
-				//if( this.is_preview_paused ) {
 			}
 		}
 		
@@ -2257,14 +1588,6 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 			Activity activity = (Activity)this.getContext();
 			ImageView view = (ImageView)activity.findViewById(R.id.take_photo);
 			view.setImageResource(is_video ? R.drawable.take_video : R.drawable.take_photo);
-
-			if( save ) {
-				// now save
-				SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this.getContext());
-				SharedPreferences.Editor editor = sharedPreferences.edit();
-				editor.putBoolean(getIsVideoPreferenceKey(), is_video);
-				editor.apply();
-	    	}
 			
 			if( update_preview_size ) {
 				if( this.is_preview_started ) {
@@ -2272,7 +1595,6 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 					this.is_preview_started = false;
 				}
 				setPreviewSize();				
-				// always start the camera preview, even if it was previously paused
 		        this.startCameraPreview();
 			}
 		}
@@ -2344,15 +1666,9 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 	}
 	
 	private void updateFlash(int new_flash_index) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "updateFlash(): " + new_flash_index);
-		// updates the Flash button, and Flash camera mode
 		if( supported_flash_values != null && new_flash_index != current_flash_index ) {
 			boolean initial = current_flash_index==-1;
 			current_flash_index = new_flash_index;
-			if( MyDebug.LOG )
-				Log.d(TAG, "    current_flash_index is now " + current_flash_index + " (initial " + initial + ")");
-
 			Activity activity = (Activity)this.getContext();
 			ImageView flashButton = (ImageView) activity.findViewById(R.id.flash);
 	    	String [] flash_entries = getResources().getStringArray(R.array.flash_entries);
@@ -2362,12 +1678,7 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 				Log.d(TAG, "    flash_value: " + flash_value);
 	    	String [] flash_values = getResources().getStringArray(R.array.flash_values);
 	    	for(int i=0;i<flash_values.length;i++) {
-				/*if( MyDebug.LOG )
-					Log.d(TAG, "    compare to: " + flash_values[i]);*/
 	    		if( flash_value.equals(flash_values[i]) ) {
-					if( MyDebug.LOG )
-						Log.d(TAG, "    found entry: " + i);
-	    			//flashButton.setText(flash_entries[i]);
 	    			int resource = getResources().getIdentifier(flash_icons[i], null, activity.getApplicationContext().getPackageName());
 	    			flashButton.setImageResource(resource);
 	    			if( !initial ) {
@@ -3672,12 +2983,7 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
     }
     
     private void autoFocusCompleted(boolean manual, boolean success, boolean cancelled) {
-		if( MyDebug.LOG ) {
-			Log.d(TAG, "autoFocusCompleted");
-			Log.d(TAG, "    manual? " + manual);
-			Log.d(TAG, "    success? " + success);
-			Log.d(TAG, "    cancelled? " + cancelled);
-		}
+    	
 		if( cancelled ) {
 			focus_success = FOCUS_DONE;
 		}
@@ -3685,14 +2991,12 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 			focus_success = success ? FOCUS_SUCCESS : FOCUS_FAILED;
 			focus_complete_time = System.currentTimeMillis();
 		}
-		AntilostCameraActivity main_activity = (AntilostCameraActivity)AntilostPreview.this.getContext();
-		if( manual && !cancelled && ( success || main_activity.is_test ) ) {
+		
+		if( manual && !cancelled && ( success ) ) {
 			successfully_focused = true;
 			successfully_focused_time = focus_complete_time;
 		}
 		if( set_flash_after_autofocus.length() > 0 ) {
-			if( MyDebug.LOG )
-				Log.d(TAG, "set flash back to: " + set_flash_after_autofocus);
 			Camera.Parameters parameters = camera.getParameters();
 			parameters.setFlashMode(set_flash_after_autofocus);
 			set_flash_after_autofocus = "";
@@ -3701,21 +3005,11 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
     }
     
     private void startCameraPreview() {
-		long debug_time = 0;
-		if( MyDebug.LOG ) {
-			Log.d(TAG, "startCameraPreview");
-			debug_time = System.currentTimeMillis();
-		}
-		//if( camera != null && !is_taking_photo && !is_preview_started ) {
 		if( camera != null && !this.isTakingPhotoOrOnTimer() && !is_preview_started ) {
 			if( MyDebug.LOG )
 				Log.d(TAG, "starting the camera preview");
 			{
-				if( MyDebug.LOG )
-					Log.d(TAG, "setRecordingHint: " + is_video);
 				Camera.Parameters parameters = camera.getParameters();
-				// calling setParameters here with continuous video focus mode causes preview to not restart on Galaxy Nexus?! (fine on my Nexus 7)
-				// issue seems to specifically be with setParameters (i.e., the problem occurs even if we don't setRecordingHint)
 				String focus_mode = parameters.getFocusMode();
 	            if( focus_mode != null && !focus_mode.equals(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO) ) {
 					parameters.setRecordingHint(this.is_video);
@@ -3725,22 +3019,11 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 	    	count_cameraStartPreview++;
 			camera.startPreview();
 			this.is_preview_started = true;
-			if( MyDebug.LOG ) {
-				Log.d(TAG, "time after starting camera preview: " + (System.currentTimeMillis() - debug_time));
-			}
 			if( this.using_face_detection ) {
-				if( MyDebug.LOG )
-					Log.d(TAG, "start face detection");
 				try {
 					camera.startFaceDetection();
-				}
-				catch(RuntimeException e) {
-					// I didn't think this could happen, as we only call startFaceDetection() after we've called takePicture() or stopPreview(), which the Android docs say stops the face detection
-					// however I had a crash reported on Google Play for Open Camera v1.4
-					// 2 Jan 2014, "maxx_ax5", Android 4.0.3-4.0.4
-					// startCameraPreview() was called after taking photo in burst mode, but I tested with burst mode and face detection, and can't reproduce the crash on Galaxy Nexus
-					if( MyDebug.LOG )
-						Log.d(TAG, "face detection already started");
+				}catch(RuntimeException e) {
+					e.printStackTrace() ;
 				}
 				faces_detected = null;
 			}
@@ -3749,42 +3032,26 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
     }
 
     private void setPreviewPaused(boolean paused) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "setPreviewPaused: " + paused);
-		Activity activity = (Activity)this.getContext();
-	    View shareButton = (View) activity.findViewById(R.id.share);
-	    View trashButton = (View) activity.findViewById(R.id.trash);
-		/*is_preview_paused = paused;
-		if( is_preview_paused ) {*/
 	    if( paused ) {
 	    	this.phase = PHASE_PREVIEW_PAUSED;
-		    shareButton.setVisibility(View.VISIBLE);
-		    trashButton.setVisibility(View.VISIBLE);
-		    // shouldn't call showGUI(false), as should already have been disabled when we started to take a photo
 		}
 		else {
 	    	this.phase = PHASE_NORMAL;
-			shareButton.setVisibility(View.GONE);
-		    trashButton.setVisibility(View.GONE);
 		    preview_image_name = null;
 			showGUI(true);
 		}
     }
     
-    private void showGUI(final boolean show) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "showGUI: " + show);
+    public void showGUI(final boolean show) {
+    	
 		final Activity activity = (Activity)this.getContext();
 		activity.runOnUiThread(new Runnable() {
 			public void run() {
 		    	final int visibility = show ? View.VISIBLE : View.GONE;
 			    View switchCameraButton = (View) activity.findViewById(R.id.switch_camera);
-			    View switchVideoButton = (View) activity.findViewById(R.id.switch_video);
 			    View flashButton = (View) activity.findViewById(R.id.flash);
 			    View focusButton = (View) activity.findViewById(R.id.focus_mode);
 			    switchCameraButton.setVisibility(visibility);
-			    if( !is_video )
-			    	switchVideoButton.setVisibility(visibility); // still allow switch video when recording video
 			    if( supported_flash_values != null )
 			    	flashButton.setVisibility(visibility);
 			    if( supported_focus_values != null )
@@ -3794,8 +3061,6 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
     }
 
     public void onAccelerometerSensorChanged(SensorEvent event) {
-		/*if( MyDebug.LOG )
-    	Log.d(TAG, "onAccelerometerSensorChanged: " + event.values[0] + ", " + event.values[1] + ", " + event.values[2]);*/
 
     	this.has_gravity = true;
     	for(int i=0;i<3;i++) {
@@ -3958,8 +3223,6 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
     }
     
     public void onResume() {
-		if( MyDebug.LOG )
-			Log.d(TAG, "onResume");
 		this.app_is_paused = false;
 		SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this.getContext());
 		String ui_placement = sharedPreferences.getString("preference_ui_placement", "ui_right");
@@ -3974,17 +3237,6 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 		this.closeCamera();
     }
 
-	public void onSaveInstanceState(Bundle state) {
-		if( MyDebug.LOG )
-			Log.d(TAG, "onSaveInstanceState");
-		if( MyDebug.LOG )
-			Log.d(TAG, "save cameraId: " + cameraId);
-    	state.putInt("cameraId", cameraId);
-		if( MyDebug.LOG )
-			Log.d(TAG, "save zoom_factor: " + zoom_factor);
-    	state.putInt("zoom_factor", zoom_factor);
-	}
-
     public void showToast(final ToastBoxer clear_toast, final String message) {
 		class RotatedTextView extends View {
 			private String text = "";
@@ -3994,7 +3246,6 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 
 			public RotatedTextView(String text, Context context) {
 				super(context);
-
 				this.text = text;
 			}
 
@@ -4004,9 +3255,6 @@ public class AntilostPreview extends SurfaceView implements SurfaceHolder.Callba
 				paint.setTextSize(14 * scale + 0.5f); // convert dps to pixels
 				paint.setShadowLayer(1, 0, 1, Color.BLACK);
 				paint.getTextBounds(text, 0, text.length(), bounds);
-				/*if( MyDebug.LOG ) {
-					Log.d(TAG, "bounds: " + bounds);
-				}*/
 				final int padding = (int) (14 * scale + 0.5f); // convert dps to pixels
 				final int offset_y = (int) (32 * scale + 0.5f); // convert dps to pixels
 				canvas.save();

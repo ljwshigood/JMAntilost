@@ -111,6 +111,14 @@
             android:name="com.cn.jmantiLost.activity.MainActivity"
             android:screenOrientation="portrait" >
         </activity>
+        <activity
+            android:name="com.cn.jmantiLost.activity.AboutMeActivity"
+            android:screenOrientation="portrait" >
+        </activity>
+        <activity
+            android:name="com.cn.jmantiLost.activity.ProblemActivity"
+            android:screenOrientation="portrait" >
+        </activity>
         <activity android:name="com.cn.jmantiLost.activity.CallActivity" >
         </activity>
         <activity
@@ -156,7 +164,6 @@
         </activity>
         <activity
             android:name="com.cn.jmantiLost.activity.RecordActivity"
-            android:launchMode="singleInstance"
             android:screenOrientation="portrait" >
         </activity>
         <activity android:name="com.cn.jmantiLost.activity.DeviceScanActivity" >

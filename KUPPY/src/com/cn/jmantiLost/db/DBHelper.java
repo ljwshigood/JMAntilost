@@ -65,6 +65,7 @@ public class DBHelper extends SQLiteOpenHelper {
 				"[islocation] INTEGER," +
 				"[latitude] VARCHAR," +
 				"[longitude] VARCHAR," +
+				"[anti_time] long," +
 				"[connect] INTEGER); ";
 		
 		String sql_disturb = "CREATE TABLE [device_disturb] (" +

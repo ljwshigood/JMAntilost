@@ -51,7 +51,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_weight="90"
-                android:background="@drawable/bg_title"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:padding="10dp" >
@@ -68,7 +67,7 @@
                 android:id="@+id/ll_content"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_weight="20"
+                android:layout_weight="30"
                 android:gravity="center_vertical"
                 android:orientation="vertical" >
 
@@ -85,6 +84,7 @@
                     android:minWidth="250dp" />
 
                 <TextView
+                    android:id="@+id/tv_scan_status"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_centerInParent="true"
@@ -97,20 +97,22 @@
                 android:id="@+id/ll_buttom"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_weight="90"
-                android:gravity="center"
+                android:layout_weight="80"
+                android:gravity="center_horizontal"
                 android:orientation="vertical" >
 
                 <LinearLayout
+                    android:id="@+id/ll_connect_status"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="@drawable/btn_blue_selector"
                     android:gravity="center" >
 
                     <TextView
+                        android:id="@+id/tv_connect_status"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/call"
+                        android:text="@string/scann_device"
                         android:textColor="@color/blue_light"
                         android:textSize="@dimen/txt_size_18" />
                 </LinearLayout>

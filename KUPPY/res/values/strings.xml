@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="front">Font</string>
-	<string name="Rear">Rear</string>
+	<string name="disconnect_location">Location</string>
+    <string name="stop">Stop</string>
+    <string name="non_device_connected">No tag connected, try connecting</string>
+    <string name="tip">Tip</string>
+    <string name="front">Font</string>
+    <string name="Rear">Rear</string>
     <string name="shark">Shaking alarm</string>
     <string name="connected_device">Anti-lost already connected</string>
     <string name="get_pic">We have obtained photographs image</string>
@@ -22,6 +26,8 @@
     <string name="sos">Emergency call for help</string>
     <string name="light">Flash</string>
     <string name="record_info">record</string>
+    <string name="soft_version_info">Software Version：%1$s</string>
+    <string name="fire_version_info">Hardware Version：%1$s</string>
     <string name="zipai">capture</string>
     <string name="camear_set">Camera settings</string>
     <string name="key_set_value">Not yet set</string>
@@ -109,11 +115,16 @@
     <string name="message">With your new text message</string>
     <string name="about_available">Available</string>
     <string name="about_me">About me</string>
-    <string name="new_info">New</string>
+    <string name="initial_camera">Initialization camera</string>
+    <string name="non_device">No tag around</string>
+    <string name="again_scan">Re scan</string>
+    <string name="new_info">E3-A</string>
     <string name="name_is_null">The name is not null</string>
     <string name="input_name">input name</string>
     <string name="disturb_switch">Please open the disturb mode switch</string>
     <string name="contact_empty">Contact is empty</string>
+    <string name="no_scanning_device">No tag around, ensure that tag is turned on and closed to your phone</string>
+    <string name="exit_all_application">Determine exit from the entire application?</string>
     <string name="sms_empty">Message is empty</string>
     <string name="find_device_donot_touch">Finding the device , please do not touch</string>
     <string name="find_device_info">Finding device,Please wait a moment</string>
@@ -149,7 +160,7 @@
     <string name="from_gallery">Select from gllery</string>
     <string name="set_name">Set Name</string>
     <string name="setting">Setting</string>
-     <string name="problem">常见问题</string>
+    <string name="problem">常见问题</string>
     <string name="camera">Camera</string>
     <string name="location">Location</string>
     <string name="recording">Recording</string>
@@ -165,7 +176,8 @@
     <string name="sound_valume">Valume is %1$s </string>
     <string name="notify">Note !</string>
     <string name="delete_key_set">Delete the key set?</string>
-    <string name="app_name">Smart Klick V2</string>
+    <string name="app_name">E3-A</string>
+    <string name="file_name">File Name</string>
     <string name="distance_jin">Near</string>
     <string name="distance_yuan">Far</string>
     <string name="distance_middle">Middle</string>
@@ -177,8 +189,10 @@
     <string name="open_app">Open application</string>
     <string name="sos_detail">sos</string>
     <string name="anti_call">Fake Call</string>
-    <string name="call">Call E2</string>
-    <string name="scanning">没有扫描到外设</string>
+    <string name="call">Call</string>
+    <string name="scanning">Scanning</string>
+    <string name="scann_result">No tag around</string>
+    <string name="scann_device">Scanning tag</string>
     <string name="pic_count">Picture Counts：</string>
     <string name="ok">OK</string>
     <string name="alarm_cancel">Cancel</string>
@@ -193,12 +207,12 @@
     <string name="quite_mode_duration">Quiet Hours</string>
     <string name="device_setting">Settings</string>
     <string name="device">Device</string>
-    <string name="record">Record</string>
+    <string name="record">Voice Record</string>
     <string name="change_picture">Change Picture</string>
     <string name="not_disturb">Not Disturb</string>
     <string name="battery_icon">battery</string>
     <string name="device_list">Device List</string>
-    <string name="antilost">ANTILOST</string>
+    <string name="antilost">Anti-lost</string>
     <string name="maunal">Manual</string>
     <string name="call_people">Make a phone call</string>
     <string name="from_to">From \n to</string>

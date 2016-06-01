@@ -3,14 +3,17 @@ package com.cn.jmantiLost.adapter;
 import java.io.File;
 import java.util.ArrayList;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
 import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -57,18 +60,16 @@ public class RecordMenuAdapter extends BaseAdapter implements
 	}
 
 	@Override
-	public View getView(int position, View convertView, ViewGroup parent) {
+	public View getView(final int position, View convertView, ViewGroup parent) {
 		final ViewHolder viewHolder;
 		final int tempPosition = position;
 		if (convertView == null) {
 			convertView = mInflator.inflate(R.layout.item_record_menu, null);
 			viewHolder = new ViewHolder();
-			viewHolder.mIvRecordMenu = (ImageView) convertView
-					.findViewById(R.id.iv_record_menu);
-			viewHolder.mTvRecordMenuInfo = (TextView) convertView
-					.findViewById(R.id.tv_record_menu);
-			viewHolder.mCbDelete = (CheckBox) convertView
-					.findViewById(R.id.cb_delete);
+			viewHolder.mIvRecordMenu = (ImageView) convertView.findViewById(R.id.iv_record_menu);
+			viewHolder.mTvRecordMenuInfo = (TextView) convertView.findViewById(R.id.tv_record_menu);
+			viewHolder.mCbDelete = (CheckBox) convertView.findViewById(R.id.cb_delete);
+			viewHolder.mIvEditorRecord = (ImageView)convertView.findViewById(R.id.iv_editor_record) ;
 			convertView.setTag(viewHolder);
 		} else {
 			viewHolder = (ViewHolder) convertView.getTag();
@@ -84,15 +85,42 @@ public class RecordMenuAdapter extends BaseAdapter implements
 		}else{
 			viewHolder.mCbDelete.setChecked(false);
 		}
+		final File file = new File(mRecordMemuList.get(tempPosition).getFilePath());
 		
-		File file = new File(mRecordMemuList.get(tempPosition).getFilePath());
+		viewHolder.mIvEditorRecord.setOnClickListener(new OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				if(mIShowDialog != null){
+					mIShowDialog.showDialog(file,mRecordMemuList.get(position)) ;
+				}
+			}
+		}) ;
+		
 		viewHolder.mTvRecordMenuInfo.setText(file.getName());
 		return convertView;
 	}
+	
+	private IShowDialog mIShowDialog ;
+	
+	public IShowDialog getmIShowDialog() {
+		return mIShowDialog;
+	}
 
+	public void setmIShowDialog(IShowDialog mIShowDialog) {
+		this.mIShowDialog = mIShowDialog;
+	}
+
+	public interface IShowDialog{
+		
+		public void showDialog(File file,RecordInfo info);
+	}
+	
+	
 	class ViewHolder {
 		CheckBox mCbDelete;
 		ImageView mIvRecordMenu;
+		ImageView mIvEditorRecord ;
 		TextView mTvRecordMenuInfo;
 	}
 

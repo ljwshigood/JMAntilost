@@ -245,20 +245,16 @@ public class DatabaseManager {
 
 	public ArrayList<DeviceSetInfo> selectDeviceInfoByLocation() {
 		ArrayList<DeviceSetInfo> deviceInfoList = null;
-		String sql = "select * from device_set where islocation = 1";
+		String sql = "select * from device_set";
 		Cursor cursor = mSQLiteDatabase.rawQuery(sql, null);
 		if (cursor != null) {
 			deviceInfoList = new ArrayList<DeviceSetInfo>();
 			while (cursor.moveToNext()) {
 				DeviceSetInfo deviceInfo = new DeviceSetInfo();
-				deviceInfo.setDeviceId(cursor.getString(cursor
-						.getColumnIndexOrThrow("unique_id")));
-				deviceInfo.setFilePath(cursor.getString(cursor
-						.getColumnIndexOrThrow("imagepath")));
-				deviceInfo.setDistanceType(cursor.getInt(cursor
-						.getColumnIndexOrThrow("distance")));
-				boolean isDisturb = cursor.getInt(cursor
-						.getColumnIndexOrThrow("isdisturb")) == 1 ? true
+				deviceInfo.setDeviceId(cursor.getString(cursor.getColumnIndexOrThrow("unique_id")));
+				deviceInfo.setFilePath(cursor.getString(cursor.getColumnIndexOrThrow("imagepath")));
+				deviceInfo.setDistanceType(cursor.getInt(cursor.getColumnIndexOrThrow("distance")));
+				boolean isDisturb = cursor.getInt(cursor.getColumnIndexOrThrow("isdisturb")) == 1 ? true
 						: false;
 				boolean isLocation = cursor.getInt(cursor
 						.getColumnIndexOrThrow("islocation")) == 1 ? true
@@ -275,6 +271,7 @@ public class DatabaseManager {
 						.getColumnIndexOrThrow("latitude")));
 				deviceInfo.setLng(cursor.getString(cursor
 						.getColumnIndexOrThrow("longitude")));
+				deviceInfo.setTime(cursor.getLong(cursor.getColumnIndexOrThrow("anti_time"))) ;
 				deviceInfo.setLocation(isLocation);
 				deviceInfo.setActive(isActive);
 				deviceInfoList.add(deviceInfo);
@@ -476,9 +473,9 @@ public class DatabaseManager {
 		return soundInfoList;
 	}
 
-	public void updateDeviceLatLogDisconnect(String lat,String lng,String deviceID) {
-		String sql = "update device_set set latitude = \"%s\",longitude =\"%s\", connect = 0 where unique_id = \"%s\" and islocation = 1";
-		sql = String.format(sql, lat, lng,deviceID);
+	public void updateDeviceLatLogDisconnect(String lat,String lng,String deviceID,long currentTime) {
+		String sql = "update device_set set latitude = \"%s\",longitude =\"%s\", anti_time = %d ,connect = 0 where unique_id = \"%s\" and islocation = 1";
+		sql = String.format(sql, lat, lng,currentTime,deviceID);
 		Log.e("liujw", "####################sql " + sql);
 		mSQLiteDatabase.execSQL(sql);
 	}
@@ -528,6 +525,13 @@ public class DatabaseManager {
 				info.getEndTime(), deviceID);
 		mSQLiteDatabase.execSQL(sql);
 	}
+	
+	public void updateDisturbInfo(DisturbInfo info) {
+		String sql = "update device_set set isdisturb =%d ";
+		int isDisturb = info.isDisturb() == true ? 1 : 0;
+		sql = String.format(sql, isDisturb);
+		mSQLiteDatabase.execSQL(sql);
+	}
 
 	public void updateDisturbIsDisturbInfo(String deviceID, DisturbInfo info) {
 		String sql = "update device_disturb set isdisturb =%d "
@@ -558,13 +562,13 @@ public class DatabaseManager {
 	}
 
 	public void insertDeviceInfo(String deviceID, DeviceSetInfo info) {
-		String sql = "insert into device_set values(null,\"%s\",\"%s\",%d,%d,\"%s\",\"%s\",%d,%d,null,null,1)";
+		String sql = "insert into device_set values(null,\"%s\",\"%s\",%d,%d,\"%s\",\"%s\",%d,%d,null,null,%d,1)";
 		int isDisturb = info.isDisturb() == true ? 1 : 0;
 		int isLocation = info.isLocation() == true ? 1 : 0;
 		int isActivie = info.isActive() == true ? 1 : 0;
 		sql = String.format(sql, deviceID, info.getFilePath(), isDisturb,
 				info.getDistanceType(), info.getmDeviceName(),
-				info.getmDeviceAddress(), isActivie, isLocation);
+				info.getmDeviceAddress(), isActivie, isLocation,System.currentTimeMillis());
 		mSQLiteDatabase.execSQL(sql);
 	}
 

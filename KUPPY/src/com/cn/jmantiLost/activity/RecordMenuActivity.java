@@ -137,9 +137,9 @@ public class RecordMenuActivity extends BaseActivity implements
             SwipeMenuItem deleteItem = new SwipeMenuItem(
                     getApplicationContext());
             // set item background
-            deleteItem.setBackground(mContext.getResources().getDrawable(R.drawable.ic_delete_press));
+            deleteItem.setIcon(mContext.getResources().getDrawable(R.drawable.ic_delete_press));
             // set item width
-            deleteItem.setWidth(200);
+            deleteItem.setWidth(100);
             // set a icon
           //  deleteItem.setIcon(R.drawable.ic_delete);
             // add to menu

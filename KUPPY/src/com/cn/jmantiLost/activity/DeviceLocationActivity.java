@@ -1,16 +1,23 @@
 package com.cn.jmantiLost.activity;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 
+import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ImageView;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
 
 import com.amap.api.location.AMapLocation;
 import com.amap.api.location.AMapLocationListener;
@@ -28,19 +35,25 @@ import com.amap.api.maps2d.model.LatLng;
 import com.amap.api.maps2d.model.Marker;
 import com.amap.api.maps2d.model.MarkerOptions;
 import com.amap.api.maps2d.model.MyLocationStyle;
+import com.amap.api.services.core.LatLonPoint;
+import com.amap.api.services.geocoder.GeocodeAddress;
+import com.amap.api.services.geocoder.GeocodeResult;
+import com.amap.api.services.geocoder.GeocodeSearch;
+import com.amap.api.services.geocoder.GeocodeSearch.OnGeocodeSearchListener;
+import com.amap.api.services.geocoder.RegeocodeQuery;
+import com.amap.api.services.geocoder.RegeocodeResult;
 import com.cn.jmantiLost.R;
-import com.cn.jmantiLost.adapter.LocationDeviceAdapter;
+import com.cn.jmantiLost.application.AppContext;
 import com.cn.jmantiLost.bean.DeviceSetInfo;
 import com.cn.jmantiLost.db.DatabaseManager;
+import com.cn.jmantiLost.service.BluetoothLeService;
 import com.cn.jmantiLost.util.LocationUtils;
 import com.cn.jmantiLost.view.FollowInfoDialog;
 
-public class DeviceLocationActivity extends FragmentActivity implements OnItemClickListener, 
-																		OnClickListener,
+public class DeviceLocationActivity extends FragmentActivity implements OnClickListener,
 																		LocationSource,
-																		AMapLocationListener {
-
-	private boolean showFlag = true;
+																		AMapLocationListener,
+																		OnGeocodeSearchListener{
 
 	private DatabaseManager mDatabaseManager;
 
@@ -50,58 +63,123 @@ public class DeviceLocationActivity extends FragmentActivity implements OnItemCl
 
 	private MapView mapView;
 	
+	private TextView mTvPlace ;
+	
+	private TextView mTvTime ;
+	
+	private ImageView mIvLocate ;
+	
 	private void init() {
 		if (aMap == null) {
 			aMap = mapView.getMap();
 			setUpMap();
 		}
 	}
-
-	/**
-	 * 设置一些amap的属性
-	 */
-	private void setUpMap() {
-		// 自定义系统定位小蓝点
-		MyLocationStyle myLocationStyle = new MyLocationStyle();
-		myLocationStyle.myLocationIcon(BitmapDescriptorFactory.fromResource(R.drawable.location_marker));// 设置小蓝点的图标
-		myLocationStyle.strokeColor(Color.BLACK);// 设置圆形的边框颜色
-		myLocationStyle.radiusFillColor(Color.argb(100, 0, 0, 180));// 设置圆形的填充颜色
-		// myLocationStyle.anchor(int,int)//设置小蓝点的锚点
-		myLocationStyle.strokeWidth(1.0f);// 设置圆形的边框粗细
-		aMap.setMyLocationStyle(myLocationStyle);
-		aMap.setLocationSource(this);// 设置定位监听
-		aMap.getUiSettings().setMyLocationButtonEnabled(true);// 设置默认定位按钮是否显示
-		aMap.setMyLocationEnabled(true);// 设置为true表示显示定位层并可触发定位，false表示隐藏定位层并不可触发定位，默认是false
+	
+	private RelativeLayout mRlDeviceInfo ;
+	
+	private void initView(){
+		mRlDeviceInfo = (RelativeLayout)findViewById(R.id.rl_device_info);
+		mIvLocate = (ImageView)findViewById(R.id.iv_locate);
+		mTvPlace = (TextView)findViewById(R.id.tv_place) ;
+		mTvTime = (TextView)findViewById(R.id.tv_time) ;
+		mIvLocate.setOnClickListener(this) ;
+		mRlDeviceInfo.setVisibility(View.GONE);
+		mRlDeviceInfo.setOnClickListener(this) ;
 	}
 
+	
+	private void setUpMap() {
+		MyLocationStyle myLocationStyle = new MyLocationStyle();
+		myLocationStyle.myLocationIcon(BitmapDescriptorFactory.fromResource(R.drawable.location_marker));
+		myLocationStyle.strokeColor(Color.TRANSPARENT);
+		myLocationStyle.radiusFillColor(Color.TRANSPARENT);
+		myLocationStyle.strokeWidth(1.0f);
+		aMap.setMyLocationStyle(myLocationStyle);
+		aMap.setLocationSource(this);
+		aMap.getUiSettings().setMyLocationButtonEnabled(false);
+		aMap.setMyLocationEnabled(true);
+	}
+	
+
+	private static IntentFilter makeGattUpdateIntentFilter() {
+		final IntentFilter intentFilter = new IntentFilter();
+		intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
+		intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
+		intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
+		intentFilter.addAction(BluetoothLeService.ACTION_NOTIFY_DATA_AVAILABLE);
+		intentFilter.addAction(BluetoothLeService.ACTION_GATT_RSSI);
+		intentFilter.addAction(BluetoothLeService.ACTION_READ_DATA_AVAILABLE);
+		return intentFilter;
+	}
+
+
+	private GeocodeSearch geocoderSearch;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		mContext = DeviceLocationActivity.this;
 		mDatabaseManager = DatabaseManager.getInstance(mContext);
+		initDeviceList();
 		setContentView(R.layout.activity_location);
 		mapView = (MapView) findViewById(R.id.map);
-		mapView.onCreate(savedInstanceState);// 此方法必须重写
+		mapView.onCreate(savedInstanceState) ;
 		if (!LocationUtils.isOPen(mContext)) {
+			
 			FollowInfoDialog dialogLocation = new FollowInfoDialog(
 					mContext, R.style.MyDialog, null,
 					mContext.getString(R.string.open_gps), 1);
 			dialogLocation.show();
 		}
 		
+		initView() ;
 		init();
-		initDeviceList();
+		registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
 	}
 
+	private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			final String action = intent.getAction();
+			BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+			if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
+				initDeviceList() ;
+				mRlDeviceInfo.setVisibility(View.VISIBLE) ;
+				initDisconnectLocation() ;
+			}/*else if(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)){
+				mRlDeviceInfo.setVisibility(View.GONE) ;
+				removeDisconnectLoaction() ;
+			}*/
+		}
+	};
+	
+	
+	private void removeDisconnectLoaction(){
+		aMap.clear(); 
+	}
+	
 	private void initDeviceList() {
 		mDeviceList = mDatabaseManager.selectDeviceInfoByLocation();
-		LocationDeviceAdapter mFindDeviceAdapter = new LocationDeviceAdapter(this, mDeviceList);
 	}
 	
 	@Override
 	protected void onResume() {
+		AppContext.isAlarm = true ;
 		super.onResume();
+		
+		if(AppContext.mBluetoothLeService != null && !AppContext.mBluetoothLeService.isConnect() && isExistLocationRecord()){
+			initDisconnectLocation() ;
+			mRlDeviceInfo.setVisibility(View.VISIBLE) ;
+		}else{
+			aMap.clear() ;
+			initLocationMark();
+			if(mMark != null){
+				mMark.showInfoWindow();
+			}
+			mRlDeviceInfo.setVisibility(View.GONE) ;
+		}
+		
 	}
 
 	@Override
@@ -118,67 +196,92 @@ public class DeviceLocationActivity extends FragmentActivity implements OnItemCl
 	protected void onDestroy() {
 		super.onDestroy();
 		mapView.onDestroy();
+		unregisterReceiver(mGattUpdateReceiver) ;
 	}
 
 	private AMap aMap ;
 	
 	private Marker mMark;
 	
-	@Override
-	public void onItemClick(AdapterView<?> arg0, View arg1, int position,long arg3) {
+	
+	public void getAddress(final LatLonPoint latLonPoint) {
+		RegeocodeQuery query = new RegeocodeQuery(latLonPoint, 200,GeocodeSearch.AMAP);
+		geocoderSearch.getFromLocationAsyn(query);
+	}
+	
+	public String formatHourAndMinute(long time) {
 		
-		if(mDeviceList == null){
-			return ;
+		String timer ; 
+		SimpleDateFormat formatHourMin = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		Date duraTime = new Date(time);
+		timer = formatHourMin.format(duraTime) ; 
+		return timer;
+		
+	}
+	
+	private void initDisconnectLocation(){
+		
+		if(mDeviceList != null && mDeviceList.size() > 0){
+			DeviceSetInfo deviceSetInfo = mDeviceList.get(0) ;
+			getAddress(new LatLonPoint(Double.valueOf(deviceSetInfo.getLat()), Double.valueOf(deviceSetInfo.getLng())));
+			
+			mTvTime.setText(formatHourAndMinute(deviceSetInfo.getTime())) ;
+			double lat = Double.valueOf(deviceSetInfo.getLat()) ;
+			double lng = Double.valueOf(deviceSetInfo.getLng()) ;
+			
+			mMark = aMap.addMarker(new MarkerOptions().anchor(0.5f, 0.5f)
+					.position(new LatLng(lat,lng))
+					.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_pin))
+					.draggable(true));
+
+			CameraUpdate update = CameraUpdateFactory.newCameraPosition(new CameraPosition(new LatLng(lat,lng), 15, 30, 0));
+			aMap.animateCamera(update, 500, null);
+
+			mMark.showInfoWindow();
+			
+			aMap.addCircle(new CircleOptions().center(new LatLng(lat,lng))
+					.radius(500)
+					.strokeColor(Color.argb(255, 19, 167, 72))
+					.fillColor(Color.argb(50, 203, 240, 143)).strokeWidth(1));
 		}
 		
-		DeviceSetInfo deviceSetInfo = mDeviceList.get(position);
-		if(deviceSetInfo == null){
+	}
+
+
+	private void initLocationMark() {
+		
+		if(mAmapLocation == null){
 			return ;
 		}
-		
-		if(deviceSetInfo.getLat() == null || deviceSetInfo.getLat().equals("")){
-			return ;
-		}
-		
-		if(deviceSetInfo.getLng() == null || deviceSetInfo.getLng().equals("")){
-			return ;
-		}
-		
-		double lat = Double.valueOf(deviceSetInfo.getLat()) ;
-		double lng = Double.valueOf(deviceSetInfo.getLng()) ;
-		
-		aMap.clear();
-		
 		mMark = aMap.addMarker(new MarkerOptions().anchor(0.5f, 0.5f)
-				.position(new LatLng(lat,lng))
+				.position(new LatLng(mAmapLocation.getLatitude(),mAmapLocation.getLongitude()))
 				.icon(BitmapDescriptorFactory.fromResource(R.drawable.location_marker))
 				.draggable(true));
-
-		CameraUpdate update = CameraUpdateFactory.newCameraPosition(new CameraPosition(new LatLng(lat,lng), 15, 30, 0));
+		
+		CameraUpdate update = CameraUpdateFactory.newCameraPosition(new CameraPosition(new LatLng(mAmapLocation.getLatitude(),mAmapLocation.getLongitude()), 15, 30, 0));
 		aMap.animateCamera(update, 500, null);
-
-		mMark.showInfoWindow();
+	}
+	
+	private void initLocationPlace(Location aLocation) {
+		mListener.onLocationChanged(aLocation);
+		aMap.moveCamera(CameraUpdateFactory.zoomTo(19));
+		//mAMapLocationManager.removeUpdates(this);
+		//mAMapLocationManager.destroy();
 		
-		
-		
-		aMap.addCircle(new CircleOptions().center(new LatLng(lat,lng))
-				.radius(500)
-				.strokeColor(Color.argb(255, 19, 167, 72))
-				.fillColor(Color.argb(50, 203, 240, 143)).strokeWidth(1));
-		
-		showFlag = true;
 	}
 
 	@Override
 	public void onClick(View v) {
 		switch (v.getId()) {
-		case R.id.btn_find:
-			if (showFlag) {
-				showFlag = false;
-			} else {
-				showFlag = true;
+		case R.id.iv_locate :
+			if(mAmapLocation != null){
+				initLocationPlace(mAmapLocation) ;
 			}
-			break;
+			
+			break ;
+		case R.id.rl_device_info :
+			initDisconnectLocation() ;
+			break ;
 		}
 	}
 
@@ -206,14 +309,31 @@ public class DeviceLocationActivity extends FragmentActivity implements OnItemCl
 	public void onStatusChanged(String provider, int status, Bundle extras) {
 		
 	}
-
+	
+	private AMapLocation mAmapLocation ;
+	
+	
+	private boolean isExistLocationRecord(){
+		boolean ret = true ;
+		if(mDeviceList == null || mDeviceList.size() == 0){
+			ret = false ;
+		}
+		return ret ;
+	}
+	
 	@Override
 	public void onLocationChanged(AMapLocation aLocation) {
 		if (mListener != null && aLocation != null) {
-			mListener.onLocationChanged(aLocation);
-			aMap.moveCamera(CameraUpdateFactory.zoomTo(19));
-			mAMapLocationManager.removeUpdates(this);
-			mAMapLocationManager.destroy();
+			mAmapLocation = aLocation ;
+			if(AppContext.mBluetoothLeService != null && AppContext.mBluetoothLeService.isConnect()){
+				aMap.clear() ;
+				initLocationMark() ;
+				mMark.showInfoWindow();
+			}else if(!isExistLocationRecord()){
+				aMap.clear() ;
+				initLocationMark();
+				mMark.showInfoWindow();
+			}
 		}
 	}
 
@@ -221,6 +341,9 @@ public class DeviceLocationActivity extends FragmentActivity implements OnItemCl
 	public void activate(OnLocationChangedListener listener) {
 		mListener = listener;
 		if (mAMapLocationManager == null) {
+			geocoderSearch = new GeocodeSearch(this);
+			geocoderSearch.setOnGeocodeSearchListener(this);
+			
 			mAMapLocationManager = LocationManagerProxy.getInstance(this);
 			mAMapLocationManager.requestLocationData(LocationProviderProxy.AMapNetwork, 2000, 10, this);
 		}
@@ -234,6 +357,32 @@ public class DeviceLocationActivity extends FragmentActivity implements OnItemCl
 			mAMapLocationManager.destroy();
 		}
 		mAMapLocationManager = null;
+	}
+
+	@Override
+	public void onGeocodeSearched(GeocodeResult result, int rCode) {
+		if (rCode == 0) {
+			if (result != null && result.getGeocodeAddressList() != null
+					&& result.getGeocodeAddressList().size() > 0) {
+				GeocodeAddress address = result.getGeocodeAddressList().get(0);
+				String addressName = "经纬度值:" + address.getLatLonPoint() + "\n位置描述:"
+						+ address.getFormatAddress();
+				
+				mTvPlace.setText(mContext.getString(R.string.disconnect_location)+" "+addressName);
+			} 
+
+		} 
+	}
+
+	@Override
+	public void onRegeocodeSearched(RegeocodeResult result, int rCode) {
+		if (rCode == 0) {
+			if (result != null && result.getRegeocodeAddress() != null
+					&& result.getRegeocodeAddress().getFormatAddress() != null) {
+				String addressName = result.getRegeocodeAddress().getFormatAddress() ;
+				mTvPlace.setText(addressName);
+			} 
+		}
 	}
 
 }

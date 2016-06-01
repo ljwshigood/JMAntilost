@@ -99,11 +99,11 @@ public class AlarmManager {
 		return false;
 	}
 
-	public boolean DeviceDisconnectAlarm(DeviceSetInfo info, String address,
-			String alarmInfo) {
-		if (info != null) {
+	public boolean DeviceDisconnectAlarm(DeviceSetInfo info, String address,String alarmInfo) {
+		boolean flag = (Boolean) SharePerfenceUtil.getParam(mContext, "disturb", false);
+		if (info != null && !flag) {
 			Intent intentDistance = new Intent(BgMusicControlService.CTL_ACTION);
-			intentDistance.putExtra("control", 1);
+			intentDistance.putExtra("control", 3);
 			intentDistance.putExtra("address", address);
 			mContext.sendBroadcast(intentDistance);
 			return true;

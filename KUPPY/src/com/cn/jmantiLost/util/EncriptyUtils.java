@@ -1,5 +1,9 @@
 package com.cn.jmantiLost.util;
 
+import com.cn.jmantiLost.application.AppContext;
+
+
+
 public class EncriptyUtils {
 
 	// 转化字符串为十六进制编码 
@@ -99,10 +103,14 @@ public class EncriptyUtils {
 	 */
 	
 	public static String decryption(String data){
+		if(AppContext.SESSION_KEY == null){
+			return "";
+		}
 		String convertData = zhuanHuan2(data);
 		long intData = Long.parseLong(convertData,16);
 		long temp =  (intData << 3) ;
-		long tempDecryption = temp ^ Long.parseLong(Constant.SESSION_KEY,16) ;
+		long tempDecryption = temp ^ Long.parseLong(AppContext.SESSION_KEY,16) ;
+		//long tempDecryption = temp ^ Long.parseLong(Constant.SESSION_KEY,16) ;
 		String ret = Long.toHexString(tempDecryption);
 		return ret ;
 	}

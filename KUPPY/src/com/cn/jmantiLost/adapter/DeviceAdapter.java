@@ -108,9 +108,6 @@ public class DeviceAdapter extends BaseAdapter {
 			@Override
 			public void onClick(View v) {
 				if(info.isActive() && info.isConnected()){
-					if(AppContext.mBluetoothLeService != null){
-						AppContext.mBluetoothLeService.writeCharacter(info.getmDeviceAddress());
-					}
 				}
 				
 			}
@@ -120,6 +117,7 @@ public class DeviceAdapter extends BaseAdapter {
 
 			@Override
 			public void onClick(View v) {
+				
 			/*	Intent intent = new Intent(mContext, DeviceSetActivity.class);
 				String address = mDeviceList.get(tempPosition).getmDeviceAddress();
 				intent.putExtra("address", address);
