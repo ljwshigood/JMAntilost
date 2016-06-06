@@ -147,17 +147,9 @@ public class DeviceLocationActivity extends FragmentActivity implements OnClickL
 				initDeviceList() ;
 				mRlDeviceInfo.setVisibility(View.VISIBLE) ;
 				initDisconnectLocation() ;
-			}/*else if(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)){
-				mRlDeviceInfo.setVisibility(View.GONE) ;
-				removeDisconnectLoaction() ;
-			}*/
+			}
 		}
 	};
-	
-	
-	private void removeDisconnectLoaction(){
-		aMap.clear(); 
-	}
 	
 	private void initDeviceList() {
 		mDeviceList = mDatabaseManager.selectDeviceInfoByLocation();
@@ -265,9 +257,6 @@ public class DeviceLocationActivity extends FragmentActivity implements OnClickL
 	private void initLocationPlace(Location aLocation) {
 		mListener.onLocationChanged(aLocation);
 		aMap.moveCamera(CameraUpdateFactory.zoomTo(19));
-		//mAMapLocationManager.removeUpdates(this);
-		//mAMapLocationManager.destroy();
-		
 	}
 
 	@Override
@@ -345,7 +334,7 @@ public class DeviceLocationActivity extends FragmentActivity implements OnClickL
 			geocoderSearch.setOnGeocodeSearchListener(this);
 			
 			mAMapLocationManager = LocationManagerProxy.getInstance(this);
-			mAMapLocationManager.requestLocationData(LocationProviderProxy.AMapNetwork, 2000, 10, this);
+			mAMapLocationManager.requestLocationData(LocationProviderProxy.AMapNetwork, 7000, 10, this);
 		}
 	}
 

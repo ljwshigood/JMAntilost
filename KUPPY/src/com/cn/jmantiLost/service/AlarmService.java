@@ -21,13 +21,11 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.location.Location;
-import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.util.Log;
-import android.view.View;
 
 import com.amap.api.location.AMapLocation;
 import com.amap.api.location.AMapLocationListener;
@@ -51,7 +49,7 @@ public class AlarmService extends Service implements AMapLocationListener, Runna
 	
 	private AlarmManager mAlarmManager;
 
-	private DatabaseManager mDatabaseManager;
+	private DatabaseManager mDatabaseManager ;
 
 	private Context mContext;
 
@@ -111,7 +109,7 @@ public class AlarmService extends Service implements AMapLocationListener, Runna
 	
 	private void initAmapLocation(){
 		aMapLocManager = LocationManagerProxy.getInstance(this);
-		aMapLocManager.requestLocationData(LocationProviderProxy.AMapNetwork, 2000, 10, this);
+		aMapLocManager.requestLocationData(LocationProviderProxy.AMapNetwork, 7000, 10, this);
 		handler.postDelayed(this, 12000);
 	}
 	

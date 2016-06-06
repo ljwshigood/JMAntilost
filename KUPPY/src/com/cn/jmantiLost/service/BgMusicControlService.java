@@ -69,7 +69,8 @@ public class BgMusicControlService extends Service {
 		MediaPlayer mediaPlayer = null;
 		mediaPlayer = MediaPlayer.create(getBaseContext(), id);
 		mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-		mediaPlayer.setVolume(5, 5);
+		int current = mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC) ;
+		mediaPlayer.setVolume(current,current);
 		mediaPlayer.start();
 		
 		long formatDuration = (long) duration * 1000;
@@ -119,7 +120,7 @@ public class BgMusicControlService extends Service {
 		public void onReceive(final Context context, Intent intent) {
 			int control = intent.getIntExtra("control", -1);
 			String address = intent.getStringExtra("address");
-			
+			int current = mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC) ;
 			switch (control) {
 			case 1:
 				
@@ -139,9 +140,9 @@ public class BgMusicControlService extends Service {
 				if (soundList.size() > 0) {
 					SoundInfo info = soundList.get(0);
 					if(isDisturb){
-						mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 5, 0);    
+						mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, current, 0);    
 					}else{
-						mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 5, 0);
+						mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, current, 0);
 					}
 					
 					mMediaPlayer = createMediaPlayer(info.getRingId(), info.getRingVolume(),info.getDurationTime(), address) ;
@@ -157,7 +158,6 @@ public class BgMusicControlService extends Service {
 				break;
 			case 3:
 				
-				
 				if(mMediaPlayer != null){
 					releaseMusic(mMediaPlayer) ;
 				}
@@ -165,7 +165,8 @@ public class BgMusicControlService extends Service {
 				ArrayList<SoundInfo> soundListDisconnect = mDatabaseManger.selectSoundInfo(address);
 				if (soundListDisconnect.size() > 0) {
 					SoundInfo info = soundListDisconnect.get(0);
-					mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 5, 0);
+					
+					mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, current, 0);
 					mMediaPlayer = createMediaPlayer(R.raw.linkloss, info.getRingVolume(),info.getDurationTime(), address) ;
 					
 					if (!mMediaPlayer.getMediaPlayer().isPlaying()) {
